@@ -73,7 +73,7 @@ For example:
 Sequence is based on popularity and my desire to learn concrete design pattern:
 
 - [x] FACTORY METHOD (Creational Pattern)
-- [ ] DECORATOR (Structural Pattern)
+- [x] DECORATOR (Structural Pattern)
 - [ ] OBSERVER (Behavioral Pattern)
 - [ ] SINGLETON (Creational Pattern)
 - [ ] STATE (Behavioral Pattern)

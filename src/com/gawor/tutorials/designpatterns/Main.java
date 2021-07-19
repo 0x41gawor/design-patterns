@@ -1,45 +1,33 @@
 package com.gawor.tutorials.designpatterns;
 
-/*
-Comments in this case:
-//---// T H I S   C A S E
-refer to doc.md/Structure image
- */
+// Problem is described in `Problem` section in `doc.md`.
 
-import com.gawor.tutorials.designpatterns.logistics.AirLogistics;
-import com.gawor.tutorials.designpatterns.logistics.LandLogistics;
-import com.gawor.tutorials.designpatterns.logistics.Logistics;
-import com.gawor.tutorials.designpatterns.logistics.SeaLogistics;
+import com.gawor.tutorials.designpatterns.decorators.FacebookDecorator;
+import com.gawor.tutorials.designpatterns.decorators.SMSDecorator;
+import com.gawor.tutorials.designpatterns.decorators.SlackDecorator;
 
-//---// C L I E N T  C O D E
 public class Main {
 
     public static void main(String[] args) {
-        // We've got the order to realise
-        String order = "Bogota to Warsaw, 2 tons of coke";
-        // Create logistics for the order
-        Logistics logistics;
-        // Assign type of logistics to order
-        switch (assignCategory(order)) {
-            case 1:
-                logistics = new LandLogistics();
-                break;
-            case 2:
-                logistics = new SeaLogistics();
-                break;
-            case 3:
-                logistics = new AirLogistics();
-            default:
-                logistics = null;
-        }
-        //realise the order (it's delivery)
-        logistics.planDelivery(order);
-    }
 
-    public static int assignCategory(String order) {
-        // This Business logic assigns category to order
-        // Category is a number that specifies which way of logistics use: land, sea or sky.
-        // It checks the source and destination addresses, looks if it can be realised on land, checks the distance etc.
-        return 2;
+        // Client Anton wants to have pure Notifier
+        INotifier A = new Notifier();
+        A.send("Anton - pure");
+
+        System.out.println("----------------");
+
+        // Client Bartek wants to have Slack Notifications also included
+        INotifier B = new Notifier();
+        B = new SlackDecorator(B);
+        B.send("Bartek - pure + slack");
+
+        System.out.println("----------------");
+
+        // Client Carla wants to have Slack + Facebook + SMS and pure notifications
+        INotifier C = new Notifier();
+        C = new SlackDecorator(C);
+        C = new FacebookDecorator(C);
+        C = new SMSDecorator(C);
+        C.send("Carla - pure + slack + facebook + sms");
     }
 }
