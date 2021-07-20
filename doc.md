@@ -1,104 +1,80 @@
-# Observer
+# Singleton
 
 ## Intent :bulb:
 
-**Observer** is a behavioral design pattern that lets you define a subscription mechanism to notify multiple objects about any events that happen to the object they’re observing.
+**Singleton** is a creational design pattern that lets you ensure that a class has only one instance, while providing a global access point to this instance.
 
-<img src="img/1.png" style="zoom:50%;" />
+![](img/1.png)
 
 ## Problem :disappointed:
 
-Imagine we have two types of objects: a `Customer` and a `Store`. The customer is very interested in a particular product, which should become available in the store very soon.
+The Singleton pattern solves two problems at the same time, violating the *Single Responsibility Principle*:
 
-The Customer could visit the store every day and check product availability. But while the product is still *en route*, most of these trips would be pointless. 
+- Ensure that a class has just a single instance
+- Provide a global access point to that instance
 
-<img src="img/2.png" style="zoom:70%;" />
+1. **Ensure that a class has just a single instance**. Why would anyone want to control how many instances a class has? The most common reason for this is to control access to some shared resource—for example, a database or a file.
 
-On the other hand, the store could send emails to all customers each time a new product becomes available.
+   Here’s how it works: imagine that you created an object, but after a while decided to create a new one. Instead of receiving a fresh object, you’ll get the one you already created.
 
-<img src="img/3.png" style="zoom:70%;" />
+   Note that this behavior is impossible to implement with a regular constructor since a constructor call **must** always return a new object by design.
 
-This would save some customers from endless trips to the store. At the same time, it'd upset other customers who aren't interested in new products (They might consider these emails as spam).
+2. **Provide a global access point to that instance**. Remember those global variables that you (all right, me) used to store some essential objects? While they’re very handy, they’re also very unsafe since any code can potentially overwrite the contents of those variables and crash the app.
+
+   Just like a global variable, the Singleton pattern lets you access some object from anywhere in the program. However, it also protects that instance from being overwritten by other code.
 
 ## Solution :happy:
 
-Customers interested in some event (appearance of new product) can subscribe for getting emails from store each time event occurs. Which gives as no endless trips and no spam.
+All implementations of the **Singleton** have these two steps in common:
 
-The object that has some interesting state is often called *subject*, but since it’s also going to notify other objects about the changes to its state, we’ll call it ***publisher***. All other objects that want to track changes to the publisher’s state are called ***subscribers***.
+- Make the default constructor private, to prevent other objects from using the `new` operator with the Singleton class.
+- Create a static creation method that acts as a constructor. Under the hood, this method calls the private constructor to create an object and saves it in a static field. All following calls to this method return the cached object.
 
-The **Observer pattern** suggests that you add a subscription mechanism to the publisher class so individual objects can subscribe to or unsubscribe from a stream of events coming from that publisher.   In reality, this mechanism consists of 1) an array field for storing a list of references to subscriber objects and 2) several public methods which allow adding subscribers to and removing them from that list.
-
-<img src="img/4.png" style="zoom:100%;" />
-
-Now, whenever an important event happens to the publisher, it goes over its subscribers and calls the specific notification method on their objects.
-
-> Real apps might have dozens of different subscriber classes that are interested in tracking events of the same publisher class. You wouldn’t want to couple the publisher to all of those classes. Besides, you might not even know about some of them beforehand if your publisher class is supposed to be used by other people.
->
-> That’s why it’s crucial that all subscribers implement the same interface and that the publisher communicates with them only via that interface. This interface should declare the notification method along with a set of parameters that the publisher can use to pass some contextual data along with the notification.
->
-> !!! Not Mandatory to Read !!!
->
-> If your app has several different types of publishers and you want to make your subscribers compatible with all of them, you can go even further and make all publishers follow the same interface. This interface would only need to describe a few subscription methods. The interface would allow subscribers to observe publishers’ states without coupling to their concrete classes.
+If your code has access to the Singleton class, then it’s able to call the Singleton’s static method. So whenever that method is called, the same object is always returned.
 
 ## Structure :building_construction:
 
-<img src="img/5.png" style="zoom:100%;" />
+![](img/2.png)
+
+
 
 ##  Applicability :computer:
 
-- **Use the Observer pattern when changes to the state of one object may require changing other objects, and the actual set of objects is unknown beforehand or changes dynamically.**
-  - You can often experience this problem when working with classes of the graphical user interface. For example, you created custom button classes, and you want to let the clients hook some custom code to your buttons so that it fires whenever a user presses a button.
-  - The Observer pattern lets any object that implements the subscriber interface subscribe for event notifications in publisher objects. You can add the subscription mechanism to your buttons, letting the clients hook up their custom code via custom subscriber classes.
+- **Use the Singleton pattern when a class in your program should have just a single instance available to all clients; for example, a single database object shared by different parts of the program.**
+-  **Use the Singleton pattern when you need stricter control over global variables.**
+  - Unlike global variables, the Singleton pattern guarantees that there’s just one instance of a class. Nothing, except for the Singleton class itself, can replace the cached instance.
 
-- ***Use the pattern when some objects in your app must observe others, but only for a limited time or in specific cases.**
-  -  The subscription list is dynamic, so subscribers can join or leave the list whenever they need to.
+> Note that you can always adjust this limitation and allow creating any number of Singleton instances. The only piece of code that needs changing is the body of the `getInstance` method.
 
 ## How to implement :hammer:
 
-1. ook over your business logic and try to break it down into two parts: the core functionality, independent from other code, will act as the publisher; the rest will turn into a set of subscriber classes.
-
-2. Declare the subscriber interface. At a bare minimum, it should declare a single `update` method.
-
-3. Declare the publisher interface and describe a pair of methods for adding a subscriber object to and removing it from the list. Remember that publishers must work with subscribers only via the subscriber interface.
-
-4. Decide where to put the actual subscription list and the implementation of subscription methods. Usually, this code looks the same for all types of publishers, so the obvious place to put it is in an abstract class derived directly from the publisher interface. Concrete publishers extend that class, inheriting the subscription behavior.
-
-   However, if you’re applying the pattern to an existing class hierarchy, consider an approach based on composition: put the subscription logic into a separate object, and make all real publishers use it.
-
-5. Create concrete publisher classes. Each time something important happens inside a publisher, it must notify all its subscribers.
-
-6. Implement the update notification methods in concrete subscriber classes. Most subscribers would need some context data about the event. It can be passed as an argument of the notification method.
-
-   But there’s another option. Upon receiving a notification, the subscriber can fetch any data directly from the notification. In this case, the publisher must pass itself via the update method. The less flexible option is to link a publisher to the subscriber permanently via the constructor.
-
-7. The client must create all necessary subscribers and register them with proper publishers.
+1. Add a private static field to the class for storing the singleton instance.
+2. Declare a public static creation method for getting the singleton instance.
+3. Implement “lazy initialization” inside the static method. It should create a new object on its first call and put it into the static field. The method should always return that instance on all subsequent calls.
+4. Make the constructor of the class private. The static method of the class will still be able to call the constructor, but not the other objects.
+5. Go over the client code and replace all direct calls to the singleton’s constructor with calls to its static creation method.
 
 ## Pros and Cons :balance_scale:
 
 **Pros**
 
-- *Open/Closed Principle*. You can introduce new subscriber classes without having to change the publisher’s code (and vice versa if there’s a publisher interface).
--  You can establish relations between objects at runtime.
+- You can be sure that a class has only a single instance.
+-  You gain a global access point to that instance.
+-  The singleton object is initialized only when it’s requested for the first time.
 
 **Cons**
 
- Subscribers are notified in random order.
+-  Violates the *Single Responsibility Principle*. The pattern solves two problems at the time.
+-  The Singleton pattern can mask bad design, for instance, when the components of the program know too much about each other.
+-  The pattern requires special treatment in a multithreaded environment so that multiple threads won’t create a singleton object several times.
+-  It may be difficult to unit test the client code of the Singleton because many test frameworks rely on inheritance when producing mock objects. Since the constructor of the singleton class is private and overriding static methods is impossible in most languages, you will need to think of a creative way to mock the singleton. Or just don’t write the tests. Or don’t use the Singleton pattern.
 
 ## Relations with Other Patterns :family:
 
-- **Chain of Responsibility**, **Command**, **Mediator** and **Observer** address various ways of connecting senders and receivers of requests:
+- A **Facade** class can often be transformed into a **Singleton** since a single facade object is sufficient in most cases.
+- **Flyweight** would resemble **Singleton** if you somehow managed to reduce all shared states of the objects to just one flyweight object. But there are two fundamental differences between these patterns:
+  1. There should be only one Singleton instance, whereas a *Flyweight* class can have multiple instances with different intrinsic states.
+  2. The *Singleton* object can be mutable. Flyweight objects are immutable.
+- **Abstract Factories**, **Builders** and **Prototypes** can all be implemented as **Singletons**.
 
-  - *Chain of Responsibility* passes a request sequentially along a dynamic chain of potential receivers until one of them handles it.
-  - *Command* establishes unidirectional connections between senders and receivers.
-  - *Mediator* eliminates direct connections between senders and receivers, forcing them to communicate indirectly via a mediator object.
-  - *Observer* lets receivers dynamically subscribe to and unsubscribe from receiving requests.
 
-- The difference between **Mediator** and **Observe** is often elusive. In most cases, you can implement either of these patterns; but sometimes you can apply both simultaneously. Let’s see how we can do that.
-
-  The primary goal of *Mediator* is to eliminate mutual dependencies among a set of system components. Instead, these components become dependent on a single mediator object. The goal of *Observer* is to establish dynamic one-way connections between objects, where some objects act as subordinates of others.
-
-  There’s a popular implementation of the *Mediator* pattern that relies on *Observer*. The mediator object plays the role of publisher, and the components act as subscribers which subscribe to and unsubscribe from the mediator’s events. When *Mediator* is implemented this way, it may look very similar to *Observer*.
-
-  When you’re confused, remember that you can implement the Mediator pattern in other ways. For example, you can permanently link all the components to the same mediator object. This implementation won’t resemble *Observer* but will still be an instance of the Mediator pattern.
-
-  Now imagine a program where all components have become publishers, allowing dynamic connections between each other. There won’t be a centralized mediator object, only a distributed set of observers.

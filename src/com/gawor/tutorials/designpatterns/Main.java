@@ -1,32 +1,21 @@
 package com.gawor.tutorials.designpatterns;
 
-// Problem discussed in `doc.md` in "Problem" chapter
-// One of the buildings is a Police headquarters and they would like to buy some brand new IPhones for the bureau
-// We also have some basic customers
-
 /*
-Comments in this case:
+No need for Comments in this case:
 //---// T H I S   C A S E
-refer to doc.md/Structure image
+because everything is named with a design pattern naming conventions
  */
 
 //---// C L I E N T   C O D E
 public class Main {
 
     public static void main(String[] args) {
-        // Publisher object (Store will notify about new products)
-        Store store = new Store();
-
-        // Subscriber objects
-        CustomerA joe = new CustomerA("Joe");
-        CustomerB frank = new CustomerB("Frank");
-        PoliceHeadquarters police = new PoliceHeadquarters();
-
-        store.subscribe(joe);
-        store.subscribe(frank);
-        store.subscribe(police);
-
-        // Desired product arrives
-        store.mainBusinessLogic();
+        System.out.println("If you see the same value, then singleton was reused (yay!)" + "\n" +
+                "If you see different values, then 2 singletons were created (booo!!)" + "\n\n" +
+                "RESULT:" + "\n");
+        Singleton singleton = Singleton.getInstance("FOO");
+        Singleton anotherSingleton = Singleton.getInstance("BAR");
+        System.out.println(singleton.value);
+        System.out.println(anotherSingleton.value);
     }
 }

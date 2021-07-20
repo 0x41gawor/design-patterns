@@ -75,7 +75,7 @@ Sequence is based on popularity and my desire to learn concrete design pattern:
 - [x] FACTORY METHOD (Creational Pattern)
 - [x] DECORATOR (Structural Pattern)
 - [x] OBSERVER (Behavioral Pattern)
-- [ ] SINGLETON (Creational Pattern)
+- [x] SINGLETON (Creational Pattern)
 - [ ] STATE (Behavioral Pattern)
 - [ ] ADAPTER (Structural Pattern)
 - [ ] STRATEGY (Behavioral Pattern)
