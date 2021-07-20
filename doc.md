@@ -1,130 +1,104 @@
-# Decorator
+# Observer
 
 ## Intent :bulb:
 
-**Decorator** lets you attach new behaviors to objects by placing these objects inside special wrapper objects that contain the behaviors.
+**Observer** is a behavioral design pattern that lets you define a subscription mechanism to notify multiple objects about any events that happen to the object they’re observing.
 
-![](img/1.png)
+<img src="img/1.png" style="zoom:50%;" />
 
 ## Problem :disappointed:
 
-Imagine you are working on a notification library, which lets other programs use it to notify something.
+Imagine we have two types of objects: a `Customer` and a `Store`. The customer is very interested in a particular product, which should become available in the store very soon.
 
-You have one `Notifier` class, which has a single method `send()`, which accepts a message argument from program and sends emails to users defined in a constructor.
+The Customer could visit the store every day and check product availability. But while the product is still *en route*, most of these trips would be pointless. 
 
-A third-party program acting as a client code is suppose to create and configure `Notifier` object once, and the use it each time something important happened.
+<img src="img/2.png" style="zoom:70%;" />
 
-![](img/2.png)
+On the other hand, the store could send emails to all customers each time a new product becomes available.
 
-At some point u realize that users of library expect more than just a emails notifications. They would like to notify, by SMS, by Facebook or Slack etc.
+<img src="img/3.png" style="zoom:70%;" />
 
-So you just extend `Notifier` class into new subclasses.
-
-![](img/3.png)
-
-But the someone asked, what if i want to use several notification types at once? 
-
-Some users wanted facebook with Slack ones, some wanted all of them etc.
-
-You tried to address that problem by creating special subclasses which combined several notification methods within one class. However, it quickly became apparent that this approach would bloat the code immensely, not only the library code but the client code as well.
-
-![](img/4.png)
-
-You have to find some other way to structure notifications classes so that their number won’t accidentally break some Guinness record.
+This would save some customers from endless trips to the store. At the same time, it'd upset other customers who aren't interested in new products (They might consider these emails as spam).
 
 ## Solution :happy:
 
-Why not Inheritance?
+Customers interested in some event (appearance of new product) can subscribe for getting emails from store each time event occurs. Which gives as no endless trips and no spam.
 
-- Inheritance is static. You can’t alter the behavior of an existing object at runtime.
-- Subclasses can have just one parent class. In most languages, inheritance doesn’t let a class inherit behaviors of multiple classes at the same time.
+The object that has some interesting state is often called *subject*, but since it’s also going to notify other objects about the changes to its state, we’ll call it ***publisher***. All other objects that want to track changes to the publisher’s state are called ***subscribers***.
 
-One of the ways to overcome these caveats is by using *Aggregation* or *Composition* instead of *Inheritance*. Both of the alternatives work almost the same way: one object *has a* reference to another and delegates it some work, whereas with inheritance, the object itself *is* able to do that work, inheriting the behavior from its superclass.
+The **Observer pattern** suggests that you add a subscription mechanism to the publisher class so individual objects can subscribe to or unsubscribe from a stream of events coming from that publisher.   In reality, this mechanism consists of 1) an array field for storing a list of references to subscriber objects and 2) several public methods which allow adding subscribers to and removing them from that list.
 
-“**Wrapper**” is the alternative nickname for the **Decorator** pattern that clearly expresses the main idea of the pattern. A ***wrapper*** is an object that can be linked with some ***target*** object. The wrapper contains the same set of methods as the target and delegates to it all requests it receives. However, the wrapper may alter the result by doing something either before or after it passes the request to the target.
+<img src="img/4.png" style="zoom:100%;" />
 
-When does a simple wrapper become the real decorator? As I mentioned, the wrapper implements the same interface as the wrapped object. That’s why from the client’s perspective these objects are identical. Make the wrapper’s reference field accept any object that follows that interface.
+Now, whenever an important event happens to the publisher, it goes over its subscribers and calls the specific notification method on their objects.
 
-![](img/5.png)
-
-`Notifier` is a target object. `BaseDecorator` is wrapper. `Wrapee` is an object being wrapped. 
-
-`BaseDecorator` constructor accepts `Notifier` as an argument. And calls it's `send()` method in his.
-
-We have 3 classes inheriting from `BaseDecorator` and we use them to attach behaviors.
-
-Note that these decorators in their overriden method call also the super one.
-
-**How client code uses it?**
-
-Client wraps a basic Notifier object into a set of decorators that match his preferences.
-
-![](img/6.png)
-
-The last decorator in the stack would be the object that the client actually works with. Since all decorators implement the same interface as the base notifier, the rest of the client code won’t care whether it works with the “pure” notifier object or the decorated one.
+> Real apps might have dozens of different subscriber classes that are interested in tracking events of the same publisher class. You wouldn’t want to couple the publisher to all of those classes. Besides, you might not even know about some of them beforehand if your publisher class is supposed to be used by other people.
+>
+> That’s why it’s crucial that all subscribers implement the same interface and that the publisher communicates with them only via that interface. This interface should declare the notification method along with a set of parameters that the publisher can use to pass some contextual data along with the notification.
+>
+> !!! Not Mandatory to Read !!!
+>
+> If your app has several different types of publishers and you want to make your subscribers compatible with all of them, you can go even further and make all publishers follow the same interface. This interface would only need to describe a few subscription methods. The interface would allow subscribers to observe publishers’ states without coupling to their concrete classes.
 
 ## Structure :building_construction:
 
-![](img/7.png)
-
-1. The **Component** declares the common interface for both wrappers and wrapped objects.
-2. **Concrete Component** is a class of objects being wrapped. It defines the basic behavior, which can be altered by decorators.
-3. The **Base Decorator** class has a field for referencing a wrapped object. The field’s type should be declared as the component interface so it can contain both concrete components and decorators. The base decorator delegates all operations to the wrapped object.
-4. **Concrete Decorators** define extra behaviors that can be added to components dynamically. Concrete decorators override methods of the base decorator and execute their behavior either before or after calling the parent method.
-5. The **Client** can wrap components in multiple layers of decorators, as long as it works with all objects via the component interface.
+<img src="img/5.png" style="zoom:100%;" />
 
 ##  Applicability :computer:
 
-- **Use the Decorator pattern when you need to be able to assign extra behaviors to objects at runtime without breaking the code that uses these objects.**
-  - The Decorator lets you structure your business logic into layers, create a decorator for each layer and compose objects with various combinations of this logic at runtime. The client code can treat all these objects in the same way, since they all follow a common interface.
--  **Use the pattern when it’s awkward or not possible to extend an object’s behavior using inheritance.**
-  - Many programming languages have the `final` keyword that can be used to prevent further extension of a class. For a final class, the only way to reuse the existing behavior would be to wrap the class with your own wrapper, using the Decorator pattern.
+- **Use the Observer pattern when changes to the state of one object may require changing other objects, and the actual set of objects is unknown beforehand or changes dynamically.**
+  - You can often experience this problem when working with classes of the graphical user interface. For example, you created custom button classes, and you want to let the clients hook some custom code to your buttons so that it fires whenever a user presses a button.
+  - The Observer pattern lets any object that implements the subscriber interface subscribe for event notifications in publisher objects. You can add the subscription mechanism to your buttons, letting the clients hook up their custom code via custom subscriber classes.
 
-
+- ***Use the pattern when some objects in your app must observe others, but only for a limited time or in specific cases.**
+  -  The subscription list is dynamic, so subscribers can join or leave the list whenever they need to.
 
 ## How to implement :hammer:
 
-1. Make sure your business domain can be represented as a primary component with multiple optional layers over it.
-2. Figure out what methods are common to both the primary component and the optional layers. Create a component interface and declare those methods there.
-3. Create a concrete component class and define the base behavior in it.
-4. Create a base decorator class. It should have a field for storing a reference to a wrapped object. The field should be declared with the component interface type to allow linking to concrete components as well as decorators. The base decorator must delegate all work to the wrapped object.
-5. Make sure all classes implement the component interface.
-6. Create concrete decorators by extending them from the base decorator. A concrete decorator must execute its behavior before or after the call to the parent method (which always delegates to the wrapped object).
-7. The client code must be responsible for creating decorators and composing them in the way the client needs.
+1. ook over your business logic and try to break it down into two parts: the core functionality, independent from other code, will act as the publisher; the rest will turn into a set of subscriber classes.
+
+2. Declare the subscriber interface. At a bare minimum, it should declare a single `update` method.
+
+3. Declare the publisher interface and describe a pair of methods for adding a subscriber object to and removing it from the list. Remember that publishers must work with subscribers only via the subscriber interface.
+
+4. Decide where to put the actual subscription list and the implementation of subscription methods. Usually, this code looks the same for all types of publishers, so the obvious place to put it is in an abstract class derived directly from the publisher interface. Concrete publishers extend that class, inheriting the subscription behavior.
+
+   However, if you’re applying the pattern to an existing class hierarchy, consider an approach based on composition: put the subscription logic into a separate object, and make all real publishers use it.
+
+5. Create concrete publisher classes. Each time something important happens inside a publisher, it must notify all its subscribers.
+
+6. Implement the update notification methods in concrete subscriber classes. Most subscribers would need some context data about the event. It can be passed as an argument of the notification method.
+
+   But there’s another option. Upon receiving a notification, the subscriber can fetch any data directly from the notification. In this case, the publisher must pass itself via the update method. The less flexible option is to link a publisher to the subscriber permanently via the constructor.
+
+7. The client must create all necessary subscribers and register them with proper publishers.
 
 ## Pros and Cons :balance_scale:
 
 **Pros**
 
-- You can extend an object’s behavior without making a new subclass.
--  You can add or remove responsibilities from an object at runtime.
--  You can combine several behaviors by wrapping an object into multiple decorators.
--  *Single Responsibility Principle*. You can divide a monolithic class that implements many possible variants of behavior into several smaller classes.
+- *Open/Closed Principle*. You can introduce new subscriber classes without having to change the publisher’s code (and vice versa if there’s a publisher interface).
+-  You can establish relations between objects at runtime.
 
 **Cons**
 
--  It’s hard to remove a specific wrapper from the wrappers stack.
--  It’s hard to implement a decorator in such a way that its behavior doesn’t depend on the order in the decorators stack.
--  The initial configuration code of layers might look pretty ugly.
+ Subscribers are notified in random order.
 
 ## Relations with Other Patterns :family:
 
-- **Adapter** changes the interface of an existing object, while **Decorator** enhances an object without changing its interface. In addition, *Decorator* supports recursive composition, which isn’t possible when you use *Adapter*.
+- **Chain of Responsibility**, **Command**, **Mediator** and **Observer** address various ways of connecting senders and receivers of requests:
 
-- **Adapter** provides a different interface to the wrapped object, **Proxy** provides it with the same interface, and Decorator provides it with an enhanced interface.
+  - *Chain of Responsibility* passes a request sequentially along a dynamic chain of potential receivers until one of them handles it.
+  - *Command* establishes unidirectional connections between senders and receivers.
+  - *Mediator* eliminates direct connections between senders and receivers, forcing them to communicate indirectly via a mediator object.
+  - *Observer* lets receivers dynamically subscribe to and unsubscribe from receiving requests.
 
-- **Chain of Responsibility** and **Decorator** have very similar class structures. Both patterns rely on recursive composition to pass the execution through a series of objects. However, there are several crucial differences.
+- The difference between **Mediator** and **Observe** is often elusive. In most cases, you can implement either of these patterns; but sometimes you can apply both simultaneously. Let’s see how we can do that.
 
-  The *CoR* handlers can execute arbitrary operations independently of each other. They can also stop passing the request further at any point. On the other hand, various *Decorators* can extend the object’s behavior while keeping it consistent with the base interface. In addition, decorators aren’t allowed to break the flow of the request.
+  The primary goal of *Mediator* is to eliminate mutual dependencies among a set of system components. Instead, these components become dependent on a single mediator object. The goal of *Observer* is to establish dynamic one-way connections between objects, where some objects act as subordinates of others.
 
-- **Composite** and **Decorator** have similar structure diagrams since both rely on recursive composition to organize an open-ended number of objects.
+  There’s a popular implementation of the *Mediator* pattern that relies on *Observer*. The mediator object plays the role of publisher, and the components act as subscribers which subscribe to and unsubscribe from the mediator’s events. When *Mediator* is implemented this way, it may look very similar to *Observer*.
 
-  A *Decorator* is like a *Composite* but only has one child component. There’s another significant difference: *Decorator* adds additional responsibilities to the wrapped object, while *Composite* just “sums up” its children’s results.
+  When you’re confused, remember that you can implement the Mediator pattern in other ways. For example, you can permanently link all the components to the same mediator object. This implementation won’t resemble *Observer* but will still be an instance of the Mediator pattern.
 
-  However, the patterns can also cooperate: you can use *Decorator* to extend the behavior of a specific object in the *Composite* tree.
-
-- Designs that make heavy use of **Composite** and **Decorator** can often benefit from using **Prototype**. Applying the pattern lets you clone complex structures instead of re-constructing them from scratch.
-
-- **Decorator** lets you change the skin of an object, while **Strategy** lets you change the guts.
-
-- **Decorator** and **Proxy** have similar structures, but very different intents. Both patterns are built on the composition principle, where one object is supposed to delegate some of the work to another. The difference is that a *Proxy* usually manages the life cycle of its service object on its own, whereas the composition of *Decorators* is always controlled by the client.
+  Now imagine a program where all components have become publishers, allowing dynamic connections between each other. There won’t be a centralized mediator object, only a distributed set of observers.

@@ -1,33 +1,32 @@
 package com.gawor.tutorials.designpatterns;
 
-// Problem is described in `Problem` section in `doc.md`.
+// Problem discussed in `doc.md` in "Problem" chapter
+// One of the buildings is a Police headquarters and they would like to buy some brand new IPhones for the bureau
+// We also have some basic customers
 
-import com.gawor.tutorials.designpatterns.decorators.FacebookDecorator;
-import com.gawor.tutorials.designpatterns.decorators.SMSDecorator;
-import com.gawor.tutorials.designpatterns.decorators.SlackDecorator;
+/*
+Comments in this case:
+//---// T H I S   C A S E
+refer to doc.md/Structure image
+ */
 
+//---// C L I E N T   C O D E
 public class Main {
 
     public static void main(String[] args) {
+        // Publisher object (Store will notify about new products)
+        Store store = new Store();
 
-        // Client Anton wants to have pure Notifier
-        INotifier A = new Notifier();
-        A.send("Anton - pure");
+        // Subscriber objects
+        CustomerA joe = new CustomerA("Joe");
+        CustomerB frank = new CustomerB("Frank");
+        PoliceHeadquarters police = new PoliceHeadquarters();
 
-        System.out.println("----------------");
+        store.subscribe(joe);
+        store.subscribe(frank);
+        store.subscribe(police);
 
-        // Client Bartek wants to have Slack Notifications also included
-        INotifier B = new Notifier();
-        B = new SlackDecorator(B);
-        B.send("Bartek - pure + slack");
-
-        System.out.println("----------------");
-
-        // Client Carla wants to have Slack + Facebook + SMS and pure notifications
-        INotifier C = new Notifier();
-        C = new SlackDecorator(C);
-        C = new FacebookDecorator(C);
-        C = new SMSDecorator(C);
-        C.send("Carla - pure + slack + facebook + sms");
+        // Desired product arrives
+        store.mainBusinessLogic();
     }
 }
