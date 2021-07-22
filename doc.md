@@ -1,80 +1,111 @@
-# Singleton
+# State
 
 ## Intent :bulb:
 
-**Singleton** is a creational design pattern that lets you ensure that a class has only one instance, while providing a global access point to this instance.
+**State** is a behavioral design pattern that lets an object alter its behavior when its internal state changes. It appears as if the object changed its class.
 
-![](img/1.png)
+<img src="img/1.png" style="zoom:75%;" />
 
 ## Problem :disappointed:
 
-The Singleton pattern solves two problems at the same time, violating the *Single Responsibility Principle*:
+The State pattern is closely related to the concept of a [Finite-State Machine](https://en.wikipedia.org/wiki/Finite-state_machine).
 
-- Ensure that a class has just a single instance
-- Provide a global access point to that instance
+<img src="img/2.png" style="zoom:75%;" />
 
-1. **Ensure that a class has just a single instance**. Why would anyone want to control how many instances a class has? The most common reason for this is to control access to some shared resource—for example, a database or a file.
+The main idea is that, at any given moment, there’s a *finite* number of *states* which a program can be in. Within any unique state, the program behaves differently, and the program can be switched from one state to another instantaneously. However, depending on a current state, the program may or may not switch to certain other states. These switching rules, called *transitions*, are also finite and predetermined.
 
-   Here’s how it works: imagine that you created an object, but after a while decided to create a new one. Instead of receiving a fresh object, you’ll get the one you already created.
 
-   Note that this behavior is impossible to implement with a regular constructor since a constructor call **must** always return a new object by design.
 
-2. **Provide a global access point to that instance**. Remember those global variables that you (all right, me) used to store some essential objects? While they’re very handy, they’re also very unsafe since any code can potentially overwrite the contents of those variables and crash the app.
+You can also apply this approach to objects. Imagine you're programming an ATM Machine class. We can define some states for ATM Machine.
 
-   Just like a global variable, the Singleton pattern lets you access some object from anywhere in the program. However, it also protects that instance from being overwritten by other code.
+> Our simplified ATM will work that way: First a user inserts the card to it, then the user has to enter his PIN (If the PIN is wrong ATM will eject the card), after PIN validation user can request cash - ATM will withdraw the cash and ask if the next withdrawal is necessary. If not it will remove the card.
+>
+> Take on account that sometimes there might not be enough cash in ATM.
+
+We can distinguish 4 states in our ATM Machine:
+
+- No card - idle state, ATM waits for a client
+- Has card - user inserted the card. In this state ATM will ask for PIN
+- Has Pin - if PIN was correct user is logged in and can withdraw some cash
+- No Cash - Sometimes after user withdraw a cash it can occur that ATM is empty, in this state we cannot allow interaction with clients and ATM just waits for admin to be filled with cash.
+
+But first let's define 4 ways user can interact with ATM. For each interaction we will have different outcome depending on the ATM state.
+
+- Insert Card
+- Eject Card
+- Enter Pin
+- Request Cash
+
+> Note that some action are forbidden in certain states eg. You cannot Eject card from ATM in `No Card` state.
+
+<img src="img/3.png" style="zoom:50%;" />
+
+**The code problem**
+
+State machines are usually implemented with lots of conditional operators (`if` or `switch`) that select the appropriate behavior depending on the current state of the object. Usually, this “state” is just a set of values of the object’s fields. 
+
+The biggest weakness of a state machine based on conditionals reveals itself once we start adding more and more states and state-dependent behaviors to the `ATMMachine` class. Most methods will contain monstrous conditionals that pick the proper behavior of a method according to the current state. Code like this is very difficult to maintain because any change to the transition logic may require changing state conditionals in every method.
+
+The problem tends to get bigger as a project evolves. It’s quite difficult to predict all possible states and transitions at the design stage. Hence, a lean state machine built with a limited set of conditionals can grow into a bloated mess over time.
 
 ## Solution :happy:
 
-All implementations of the **Singleton** have these two steps in common:
+The State pattern suggests that you create new classes for all possible states of an object and extract all state-specific behaviors into these classes.
 
-- Make the default constructor private, to prevent other objects from using the `new` operator with the Singleton class.
-- Create a static creation method that acts as a constructor. Under the hood, this method calls the private constructor to create an object and saves it in a static field. All following calls to this method return the cached object.
+Instead of implementing all behaviors on its own, the original object, called *context*, stores a reference to one of the state objects that represents its current state, and delegates all the state-related work to that object.
 
-If your code has access to the Singleton class, then it’s able to call the Singleton’s static method. So whenever that method is called, the same object is always returned.
+
+
+To transition the context into another state, replace the active state object with another object that represents that new state. This is possible only if all state classes follow the same interface and the context itself works with these objects through that interface.
 
 ## Structure :building_construction:
 
-![](img/2.png)
-
-
+<img src="img/4.png" style="zoom:100%;" />
 
 ##  Applicability :computer:
 
-- **Use the Singleton pattern when a class in your program should have just a single instance available to all clients; for example, a single database object shared by different parts of the program.**
--  **Use the Singleton pattern when you need stricter control over global variables.**
-  - Unlike global variables, the Singleton pattern guarantees that there’s just one instance of a class. Nothing, except for the Singleton class itself, can replace the cached instance.
+- **Use the State pattern when you have an object that behaves differently depending on its current state, the number of states is enormous, and the state-specific code changes frequently.**
+  - The pattern suggests that you extract all state-specific code into a set of distinct classes. As a result, you can add new states or change existing ones independently of each other, reducing the maintenance cost.
 
-> Note that you can always adjust this limitation and allow creating any number of Singleton instances. The only piece of code that needs changing is the body of the `getInstance` method.
+- **Use the pattern when you have a class polluted with massive conditionals that alter how the class behaves according to the current values of the class’s fields**.
+  - The State pattern lets you extract branches of these conditionals into methods of corresponding state classes. While doing so, you can also clean temporary fields and helper methods involved in state-specific code out of your main class.
+
+- **Use State when you have a lot of duplicate code across similar states and transitions of a condition-based state machine.**
+  - The State pattern lets you compose hierarchies of state classes and reduce duplication by extracting common code into abstract base classes.
 
 ## How to implement :hammer:
 
-1. Add a private static field to the class for storing the singleton instance.
-2. Declare a public static creation method for getting the singleton instance.
-3. Implement “lazy initialization” inside the static method. It should create a new object on its first call and put it into the static field. The method should always return that instance on all subsequent calls.
-4. Make the constructor of the class private. The static method of the class will still be able to call the constructor, but not the other objects.
-5. Go over the client code and replace all direct calls to the singleton’s constructor with calls to its static creation method.
+1. Decide what class will act as the context. It could be an existing class which already has the state-dependent code; or a new class, if the state-specific code is distributed across multiple classes.
+
+2. Declare the state interface. Although it may mirror all the methods declared in the context, aim only for those that may contain state-specific behavior.
+
+3. For every actual state, create a class that derives from the state interface. Then go over the methods of the context and extract all code related to that state into your newly created class.
+
+   While moving the code to the state class, you might discover that it depends on private members of the context. There are several workarounds:
+
+   - Make these fields or methods public.
+   - Turn the behavior you’re extracting into a public method in the context and call it from the state class. This way is ugly but quick, and you can always fix it later.
+   - Nest the state classes into the context class, but only if your programming language supports nesting classes.
+
+4. In the context class, add a reference field of the state interface type and a public setter that allows overriding the value of that field.
+
+5. Go over the method of the context again and replace empty state conditionals with calls to corresponding methods of the state object.
+
+6. To switch the state of the context, create an instance of one of the state classes and pass it to the context. You can do this within the context itself, or in various states, or in the client. Wherever this is done, the class becomes dependent on the concrete state class that it instantiates.
 
 ## Pros and Cons :balance_scale:
 
 **Pros**
 
-- You can be sure that a class has only a single instance.
--  You gain a global access point to that instance.
--  The singleton object is initialized only when it’s requested for the first time.
+- *Single Responsibility Principle*. Organize the code related to particular states into separate classes.
+-  *Open/Closed Principle*. Introduce new states without changing existing state classes or the context.
+-  Simplify the code of the context by eliminating bulky state machine conditionals.
 
 **Cons**
 
--  Violates the *Single Responsibility Principle*. The pattern solves two problems at the time.
--  The Singleton pattern can mask bad design, for instance, when the components of the program know too much about each other.
--  The pattern requires special treatment in a multithreaded environment so that multiple threads won’t create a singleton object several times.
--  It may be difficult to unit test the client code of the Singleton because many test frameworks rely on inheritance when producing mock objects. Since the constructor of the singleton class is private and overriding static methods is impossible in most languages, you will need to think of a creative way to mock the singleton. Or just don’t write the tests. Or don’t use the Singleton pattern.
+- Applying the pattern can be overkill if a state machine has only a few states or rarely changes.
 
 ## Relations with Other Patterns :family:
 
-- A **Facade** class can often be transformed into a **Singleton** since a single facade object is sufficient in most cases.
-- **Flyweight** would resemble **Singleton** if you somehow managed to reduce all shared states of the objects to just one flyweight object. But there are two fundamental differences between these patterns:
-  1. There should be only one Singleton instance, whereas a *Flyweight* class can have multiple instances with different intrinsic states.
-  2. The *Singleton* object can be mutable. Flyweight objects are immutable.
-- **Abstract Factories**, **Builders** and **Prototypes** can all be implemented as **Singletons**.
-
-
+- **Bridge**, **State**, **Strategy** (and to some degree **Adapter**) have very similar structures. Indeed, all of these patterns are based on composition, which is delegating work to other objects. However, they all solve different problems. A pattern isn’t just a recipe for structuring your code in a specific way. It can also communicate to other developers the problem the pattern solves.
+- **State** can be considered as an extension of **Strategy**. Both patterns are based on composition: they change the behavior of the context by delegating some work to helper objects. *Strategy* makes these objects completely independent and unaware of each other. However, *State* doesn’t restrict dependencies between concrete states, letting them alter the state of the context at will.
