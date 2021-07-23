@@ -77,7 +77,7 @@ Sequence is based on popularity and my desire to learn concrete design pattern:
 - [x] OBSERVER (Behavioral Pattern)
 - [x] SINGLETON (Creational Pattern)
 - [x] STATE (Behavioral Pattern)
-- [ ] ADAPTER (Structural Pattern)
+- [x] ADAPTER (Structural Pattern)
 - [ ] STRATEGY (Behavioral Pattern)
 - [ ] BUILDER (Creational Pattern)
 - [ ] COMMAND (Behavioral Pattern)
