@@ -79,7 +79,7 @@ Sequence is based on popularity and my desire to learn concrete design pattern:
 - [x] STATE (Behavioral Pattern)
 - [x] ADAPTER (Structural Pattern)
 - [x] STRATEGY (Behavioral Pattern)
-- [ ] BUILDER (Creational Pattern)
+- [x] BUILDER (Creational Pattern)
 - [ ] COMMAND (Behavioral Pattern)
 - [ ] CHAIN OF RESPOSIBILITY (Behavioral Pattern)
 - [ ] PROTOTYPE (Creational Pattern)
