@@ -1,126 +1,131 @@
-# Builder
+# Command
+
+Known also as: **Action** or **Transaction**
 
 ## Intent :bulb:
 
-**Builder** is a creational design pattern that lets you construct complex objects step by step. The pattern allows you to produce different types and representations of an object using the same construction code.
+**Command** is a behavioral design pattern that turns a request into a stand-alone object that contains all information about the request. This transformation lets you pass requests as a method arguments, delay or queue a request’s execution, and support undoable operations.
 
 ![](img/1.png)
 
+
+
 ## Problem :disappointed:
 
-Imagine a complex object that requires laborious, step-by-step initialization of many fields and nested objects. Such initialization code is usually buried inside a monstrous constructor with lots of parameters. Or even worse: scattered all over the client code.
+Imagine that you're working on a new Text Editor and your current task is to create a buttons for various operations of the editor. You created a very neat `Button` class that can be used for generic buttons. 
 
-For example, let’s think about how to create a `House` object. To build a simple house, you need to construct four walls and a floor, install a door, fit a pair of windows, and build a roof. But what if you want a bigger, brighter house, with a backyard and other goodies (like a heating system, plumbing, and electrical wiring)?
-
-
-
-The simplest solution is to extend the base `House` class and create a set of subclasses to cover all combinations of the parameters. But eventually you’ll end up with a considerable number of subclasses. Any new parameter, such as the porch style, will require growing this hierarchy even more.
+While all of these generic buttons look similar, they’re all supposed to do different things. Where would you put the code for the various click handlers of these buttons? The simplest solution is to create tons of subclasses for each place where the button is used. These subclasses would contain the code that would have to be executed on a button click.
 
 ![](img/2.png)
 
-There’s another approach that doesn’t involve breeding subclasses. You can create a giant constructor right in the base `House` class with all possible parameters that control the house object. While this approach indeed eliminates the need for subclasses, it creates another problem.
+Before long, you realize that this approach is deeply flawed. 
 
-![](img/3.png)
+First, you have an enormous number of subclasses, and that would be okay if you weren’t risking breaking the code in these subclasses each time you modify the base `Button` class. Put simply, your GUI code has become awkwardly dependent on the volatile code of the business logic.
 
-In most cases most of the parameters will be unused, making [the constructor calls pretty ugly](https://refactoring.guru/smells/long-parameter-list). For instance, only a fraction of houses have swimming pools, so the parameters related to swimming pools will be useless nine times out of ten.
+Second and here’s the ugliest part. Some operations, such as copying/pasting text, would need to be invoked from multiple places. For example, a user could click a small “Copy” button on the toolbar, or copy something via the context menu, or just hit `Ctrl+C` on the keyboard.
 
 ## Solution :smile:
 
-The Builder pattern suggests that you extract the object construction code out of its own class and move it to separate objects called *builders*.
+Good software design is often based on the *principle of separation of concerns*, which usually results in breaking an app into layers. The most common example: a layer for the graphical user interface and another layer for the business logic.
+
+In the code it might look like this: a GUI object calls a method of a business logic object, passing it some arguments. This process is usually described as one object sending another a *request*.
+
+![](img/3.png)
+
+The Command pattern suggests that GUI objects shouldn’t send these requests directly. Instead, you should extract all of the request details, such as the object being called, the name of the method and the list of arguments into a separate *command* class with a single method that triggers this request.
+
+Command objects serve as links between various GUI and business logic objects. From now on, the GUI object doesn’t need to know what business logic object will receive the request and how it’ll be processed. The GUI object just triggers the command, which handles all the details.
 
 ![](img/4.png)
 
-The pattern organizes object construction into a set of steps (`buildWalls`, `buildDoor`, etc.). To create an object, you execute a series of these steps on a builder object. The important part is that you don’t need to call all of the steps. You can call only those steps that are necessary for producing a particular configuration of an object.
+The next step is to make your commands implement the same interface. Usually it has just a single execution method that takes no parameters. This interface lets you use various commands with the same request sender, without coupling it to concrete classes of commands. As a bonus, now you can switch command objects linked to the sender, effectively changing the sender’s behavior at runtime.
 
-
-
-**Different Builders**
-
-Some of the construction steps might require different implementation when you need to build various representations of the product. For example, walls of a cabin may be built of wood, but the castle walls must be built with stone.
-
-In this case, you can create several different builder classes that implement the same set of building steps, but in a different manner. Then you can use these builders in the construction process (i.e., an ordered set of calls to the building steps) to produce different kinds of objects.
+You might have noticed one missing piece of the puzzle, which is the request parameters. A GUI object might have supplied the business-layer object with some parameters. Since the command execution method doesn’t have any parameters, how would we pass the request details to the receiver? It turns out the *command object* should be either pre-configured with this data, or capable of getting it on its own.
 
 ![](img/5.png)
 
-For example, imagine a builder that builds everything from wood and glass, a second one that builds everything with stone and iron and a third one that uses gold and diamonds. By calling the same set of steps, you get a regular house from the first builder, a small castle from the second and a palace from the third. However, this would only work if the client code that calls the building steps is able to interact with builders using a common interface.
-
-**Director**
-
-You can go further and extract a series of calls to the builder steps you use to construct a product into a separate class called *director*. The director class defines the order in which to execute the building steps, while the builder provides the implementation for those steps.
-
-![](img/6.png)
-
-Having a director class in your program isn’t strictly necessary. You can always call the building steps in a specific order directly from the client code. However, the director class might be a good place to put various construction routines so you can reuse them across your program.
-
-In addition, the director class completely hides the details of product construction from the client code. The client only needs to associate a builder with a director, launch the construction with the director, and get the result from the builder.
+> Let’s get back to our text editor. After we apply the Command pattern, we no longer need all those button subclasses to implement various click behaviors. It’s enough to put a single field into the base `Button` class that stores a reference to a command object and make the button execute that command on a click.
+>
+> You’ll implement a bunch of command classes for every possible operation and link them with particular buttons, depending on the buttons’ intended behavior.
+>
+> Other GUI elements, such as menus, shortcuts or entire dialogs, can be implemented in the same way. They’ll be linked to a command which gets executed when a user interacts with the GUI element. As you’ve probably guessed by now, the elements related to the same operations will be linked to the same commands, preventing any code duplication.
+>
+> As a result, commands become a convenient middle layer that reduces coupling between the GUI and business logic layers. And that’s only a fraction of the benefits that the Command pattern can offer!
 
 ## Structure :building_construction:
 
-![](img/7.png)
+![](img/6.png)
 
-1. The **Builder** interface declares product construction steps that are common to all types of builders.
-2. **Concrete Builders** provide different implementations of the construction steps. Concrete builders may produce products that don’t follow the common interface.
-3. **Products** are resulting objects. Products constructed by different builders don’t have to belong to the same class hierarchy or interface.
-4. The **Director** class defines the order in which to call construction steps, so you can create and reuse specific configurations of products.
-5. The **Client** must associate one of the builder objects with the director. Usually, it’s done just once, via parameters of the director’s constructor. Then the director uses that builder object for all further construction. However, there’s an alternative approach for when the client passes the builder object to the production method of the director. In this case, you can use a different builder each time you produce something with the director.
+1. The **Sender** class (aka **invoker**) is responsible for initiating requests. This class must have a field for storing a reference to a command object. The sender triggers that command instead of sending the request directly to the receiver. Note that the sender isn’t responsible for creating the command object. Usually, it gets a pre-created command from the client via the constructor.
+
+2. The **Command** interface usually declares just a single method for executing the command.
+
+3. **Concrete Commands** implement various kinds of requests. A concrete command isn’t supposed to perform the work on its own, but rather to pass the call to one of the business logic objects. However, for the sake of simplifying the code, these classes can be merged.
+
+   Parameters required to execute a method on a receiving object can be declared as fields in the concrete command. You can make command objects immutable by only allowing the initialization of these fields via the constructor.
+
+4. The **Receiver** class contains some business logic. Almost any object may act as a receiver. Most commands only handle the details of how a request is passed to the receiver, while the receiver itself does the actual work.
+
+5. The **Client** creates and configures concrete command objects. The client must pass all of the request parameters, including a receiver instance, into the command’s constructor. After that, the resulting command may be associated with one or multiple senders.
 
 ##  Applicability :computer:
 
-**Use the Builder pattern to get rid of a “telescopic constructor”.**
-
-- Say you have a constructor with ten optional parameters. Calling such a beast is very inconvenient; therefore, you overload the constructor and create several shorter versions with fewer parameters. These constructors still refer to the main one, passing some default values into any omitted parameters.
-
-  - ```java
-    class Pizza {
-        Pizza(int size) { ... }
-        Pizza(int size, boolean cheese) { ... }
-        Pizza(int size, boolean cheese, boolean pepperoni) { ... }
-    ```
-
-  - The Builder pattern lets you build objects step by step, using only those steps that you really need. After implementing the pattern, you don’t have to cram dozens of parameters into your constructors anymore.
-
--  **Use the Builder pattern when you want your code to be able to create different representations of some product (for example, stone and wooden houses).**
-
-  -  The Builder pattern can be applied when construction of various representations of the product involves similar steps that differ only in the details.
-  - The base builder interface defines all possible construction steps, and concrete builders implement these steps to construct particular representations of the product. Meanwhile, the director class guides the order of construction.
-
--  **Use the Builder to construct [Composite](https://refactoring.guru/design-patterns/composite) trees or other complex objects.**
-
-  - The Builder pattern lets you construct products step-by-step. You could defer execution of some steps without breaking the final product. You can even call steps recursively, which comes in handy when you need to build an object tree.
-  - A builder doesn’t expose the unfinished product while running construction steps. This prevents the client code from fetching an incomplete result.
+- **Use the Command pattern when you want to parametrize objects with operations.**
+  - The Command pattern can turn a specific method call into a stand-alone object. This change opens up a lot of interesting uses: you can pass commands as method arguments, store them inside other objects, switch linked commands at runtime, etc.
+  - Here’s an example: you’re developing a GUI component such as a context menu, and you want your users to be able to configure menu items that trigger operations when an end user clicks an item.
+- **Use the Command pattern when you want to queue operations, schedule their execution, or execute them remotely.**
+  - As with any other object, a command can be serialized, which means converting it to a string that can be easily written to a file or a database. Later, the string can be restored as the initial command object. Thus, you can delay and schedule command execution. But there’s even more! In the same way, you can queue, log or send commands over the network.
+-  **Use the Command pattern when you want to implement reversible operations.**
+  - Although there are many ways to implement undo/redo, the Command pattern is perhaps the most popular of all.	
+  - To be able to revert operations, you need to implement the history of performed operations. The command history is a stack that contains all executed command objects along with related backups of the application’s state.
+  - This method has two drawbacks. First, it isn’t that easy to save an application’s state because some of it can be private. This problem can be mitigated with the **Memento** pattern.
+  - Second, the state backups may consume quite a lot of RAM. Therefore, sometimes you can resort to an alternative implementation: instead of restoring the past state, the command performs the inverse operation. The reverse operation also has a price: it may turn out to be hard or even impossible to implement.
 
 ## How to implement :hammer:
 
-1. Make sure that you can clearly define the common construction steps for building all available product representations. Otherwise, you won’t be able to proceed with implementing the pattern.
-
-2. Declare these steps in the base builder interface.
-
-3. Create a concrete builder class for each of the product representations and implement their construction steps.
-
-   Don’t forget about implementing a method for fetching the result of the construction. The reason why this method can’t be declared inside the builder interface is that various builders may construct products that don’t have a common interface. Therefore, you don’t know what would be the return type for such a method. However, if you’re dealing with products from a single hierarchy, the fetching method can be safely added to the base interface.
-
-4. Think about creating a director class. It may encapsulate various ways to construct a product using the same builder object.
-
-5. The client code creates both the builder and the director objects. Before construction starts, the client must pass a builder object to the director. Usually, the client does this only once, via parameters of the director’s constructor. The director uses the builder object in all further construction. There’s an alternative approach, where the builder is passed directly to the construction method of the director.
-
-6. The construction result can be obtained directly from the director only if all products follow the same interface. Otherwise, the client should fetch the result from the builder.
+1. Declare the command interface with a single execution method.
+2. Start extracting requests into concrete command classes that implement the command interface. Each class must have a set of fields for storing the request arguments along with a reference to the actual receiver object. All these values must be initialized via the command’s constructor.
+3. Identify classes that will act as *senders*. Add the fields for storing commands into these classes. Senders should communicate with their commands only via the command interface. Senders usually don’t create command objects on their own, but rather get them from the client code.
+4. Change the senders so they execute the command instead of sending a request to the receiver directly.
+5. The client should initialize objects in the following order:
+   - Create receivers.
+   - Create commands, and associate them with receivers if needed.
+   - Create senders, and associate them with specific commands.
 
 ## Pros and Cons :balance_scale:
 
 **Pros**
 
--  You can construct objects step-by-step, defer construction steps or run steps recursively.
--  You can reuse the same construction code when building various representations of products.
--  *Single Responsibility Principle*. You can isolate complex construction code from the business logic of the product.
+- *Single Responsibility Principle*. You can decouple classes that invoke operations from classes that perform these operations.
+-  *Open/Closed Principle*. You can introduce new commands into the app without breaking existing client code.
+-  You can implement undo/redo.
+-  You can implement deferred execution of operations.
+-  You can assemble a set of simple commands into a complex one.
 
 **Cons**
 
--  The overall complexity of the code increases since the pattern requires creating multiple new classes.
+- The code may become more complicated since you’re introducing a whole new layer between senders and receivers.
 
 ## Relations with Other Patterns :family:
 
-- Many designs start by using **Factory Method** (less complicated and more customizable via subclasses) and evolve toward **Abstract Factory**, **Prototype**, or **Builder** (more flexible, but more complicated).
-- **Builder **focuses on constructing complex objects step by step. **Abstract Factory** specializes in creating families of related objects. *Abstract Factory* returns the product immediately, whereas *Builder* lets you run some additional construction steps before fetching the product.
-- You can use **Builder** when creating complex **Composite** trees because you can program its construction steps to work recursively.
-- You can combine **Builder** with **Bridge**: the director class plays the role of the abstraction, while different builders act as implementations.
-- **Abstract Factories**, **Builders** and **Prototypes** can all be implemented as **Singletons**.
+- **Chain of Responsibility**, **Command**, **Mediator** and **Observer**  address various ways of connecting senders and receivers of requests:
+
+  - *Chain of Responsibility* passes a request sequentially along a dynamic chain of potential receivers until one of them handles it.
+  - *Command* establishes unidirectional connections between senders and receivers.
+  - *Mediator* eliminates direct connections between senders and receivers, forcing them to communicate indirectly via a mediator object.
+  - *Observer* lets receivers dynamically subscribe to and unsubscribe from receiving requests.
+
+- Handlers in **Chain of Responsibility** can be implemented as **Commands**. In this case, you can execute a lot of different operations over the same context object, represented by a request.
+
+  However, there’s another approach, where the request itself is a *Command* object. In this case, you can execute the same operation in a series of different contexts linked into a chain.
+
+- You can use **Command** and **Memento** together when implementing “undo”. In this case, commands are responsible for performing various operations over a target object, while mementos save the state of that object just before a command gets executed.
+
+- **Command** and **Strategy** may look similar because you can use both to parameterize an object with some action. However, they have very different intents.
+
+  - You can use *Command* to convert any operation into an object. The operation’s parameters become fields of that object. The conversion lets you defer execution of the operation, queue it, store the history of commands, send commands to remote services, etc.
+  - On the other hand, *Strategy* usually describes different ways of doing the same thing, letting you swap these algorithms within a single context class.
+
+- **Prototype** can help when you need to save copies of **Commands** into history.
+
+- You can treat **Visitor** as a powerful version of the **Command** pattern. Its objects can execute operations over various objects of different classes.
