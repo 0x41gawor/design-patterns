@@ -1,131 +1,140 @@
 # Command
 
-Known also as: **Action** or **Transaction**
+aka **CoR** or **Chain of Command**
 
 ## Intent :bulb:
 
-**Command** is a behavioral design pattern that turns a request into a stand-alone object that contains all information about the request. This transformation lets you pass requests as a method arguments, delay or queue a request’s execution, and support undoable operations.
+**Chain of Responsibility** is a behavioral design pattern that lets you pass requests along a chain of handlers. Upon receiving a request, each handler decides either to process the request or to pass it to the next handler in the chain.
 
 ![](img/1.png)
 
-
-
 ## Problem :disappointed:
 
-Imagine that you're working on a new Text Editor and your current task is to create a buttons for various operations of the editor. You created a very neat `Button` class that can be used for generic buttons. 
+Imagine that you’re working on an online ordering system. You want to restrict access to the system so only authenticated users can create orders. Also, users who have administrative permissions must have full access to all orders.
 
-While all of these generic buttons look similar, they’re all supposed to do different things. Where would you put the code for the various click handlers of these buttons? The simplest solution is to create tons of subclasses for each place where the button is used. These subclasses would contain the code that would have to be executed on a button click.
+After a bit of planning, you realized that these checks must be performed sequentially. The application can attempt to authenticate a user to the system whenever it receives a request that contains the user’s credentials. However, if those credentials aren’t correct and authentication fails, there’s no reason to proceed with any other checks.
 
 ![](img/2.png)
 
-Before long, you realize that this approach is deeply flawed. 
+During the next few months, you implemented several more of those sequential checks.
 
-First, you have an enormous number of subclasses, and that would be okay if you weren’t risking breaking the code in these subclasses each time you modify the base `Button` class. Put simply, your GUI code has become awkwardly dependent on the volatile code of the business logic.
-
-Second and here’s the ugliest part. Some operations, such as copying/pasting text, would need to be invoked from multiple places. For example, a user could click a small “Copy” button on the toolbar, or copy something via the context menu, or just hit `Ctrl+C` on the keyboard.
-
-## Solution :smile:
-
-Good software design is often based on the *principle of separation of concerns*, which usually results in breaking an app into layers. The most common example: a layer for the graphical user interface and another layer for the business logic.
-
-In the code it might look like this: a GUI object calls a method of a business logic object, passing it some arguments. This process is usually described as one object sending another a *request*.
+- One of your colleagues suggested that it’s unsafe to pass raw data straight to the ordering system. So you added an extra validation step to sanitize the data in a request.
+- Later, somebody noticed that the system is vulnerable to brute force password cracking. To negate this, you promptly added a check that filters repeated failed requests coming from the same IP address.
+- Someone else suggested that you could speed up the system by returning cached results on repeated requests containing the same data. Hence, you added another check which lets the request pass through to the system only if there’s no suitable cached response.
 
 ![](img/3.png)
 
-The Command pattern suggests that GUI objects shouldn’t send these requests directly. Instead, you should extract all of the request details, such as the object being called, the name of the method and the list of arguments into a separate *command* class with a single method that triggers this request.
 
-Command objects serve as links between various GUI and business logic objects. From now on, the GUI object doesn’t need to know what business logic object will receive the request and how it’ll be processed. The GUI object just triggers the command, which handles all the details.
+
+The code of the checks, which had already looked like a mess, became more and more bloated as you added each new feature. Changing one check sometimes affected the others. Worst of all, when you tried to reuse the checks to protect other components of the system, you had to duplicate some of the code since those components required some of the checks, but not all of them.
+
+The system became very hard to comprehend and expensive to maintain. You struggled with the code for a while, until one day you decided to refactor the whole thing.
+
+## Solution :smile:
+
+**Chain of Responsibility** relies on transforming particular behaviors into stand-alone objects called *handlers*.  
+
+In our case, each check should be extracted to its own class with a single method that performs the check. The request, along with its data, is passed to this method as an argument.
+
+The pattern suggests that you link these handlers into a chain. Each linked handler has a field for storing a reference to the next handler in the chain. 
+
+In addition to processing a request, handlers pass the request further along the chain. The request travels along the chain until all handlers have had a chance to process it.
+
+Here’s the best part: a handler can decide not to pass the request further down the chain and effectively stop any further processing.
+
+In our example with ordering systems, a handler performs the processing and then decides whether to pass the request further down the chain. Assuming the request contains the right data, all the handlers can execute their primary behavior, whether it’s authentication checks or caching.
 
 ![](img/4.png)
 
-The next step is to make your commands implement the same interface. Usually it has just a single execution method that takes no parameters. This interface lets you use various commands with the same request sender, without coupling it to concrete classes of commands. As a bonus, now you can switch command objects linked to the sender, effectively changing the sender’s behavior at runtime.
-
-You might have noticed one missing piece of the puzzle, which is the request parameters. A GUI object might have supplied the business-layer object with some parameters. Since the command execution method doesn’t have any parameters, how would we pass the request details to the receiver? It turns out the *command object* should be either pre-configured with this data, or capable of getting it on its own.
-
-![](img/5.png)
-
-> Let’s get back to our text editor. After we apply the Command pattern, we no longer need all those button subclasses to implement various click behaviors. It’s enough to put a single field into the base `Button` class that stores a reference to a command object and make the button execute that command on a click.
+> However, there’s a slightly different approach (and it’s a bit more canonical) in which, upon receiving a request, a handler decides whether it can process it. If it can, it doesn’t pass the request any further. So it’s either only one handler that processes the request or none at all. This approach is very common when dealing with events in stacks of elements within a graphical user interface.
 >
-> You’ll implement a bunch of command classes for every possible operation and link them with particular buttons, depending on the buttons’ intended behavior.
+> For instance, when a user clicks a button, the event propagates through the chain of GUI elements that starts with the button, goes along its containers (like forms or panels), and ends up with the main application window. The event is processed by the first element in the chain that’s capable of handling it. This example is also noteworthy because it shows that a chain can always be extracted from an object tree.
 >
-> Other GUI elements, such as menus, shortcuts or entire dialogs, can be implemented in the same way. They’ll be linked to a command which gets executed when a user interacts with the GUI element. As you’ve probably guessed by now, the elements related to the same operations will be linked to the same commands, preventing any code duplication.
->
-> As a result, commands become a convenient middle layer that reduces coupling between the GUI and business logic layers. And that’s only a fraction of the benefits that the Command pattern can offer!
+> ![](img/5.png)
+
+It’s crucial that all handler classes implement the same interface. Each concrete handler should only care about the following one having the `execute` method. This way you can compose chains at runtime, using various handlers without coupling your code to their concrete classes.
 
 ## Structure :building_construction:
 
 ![](img/6.png)
 
-1. The **Sender** class (aka **invoker**) is responsible for initiating requests. This class must have a field for storing a reference to a command object. The sender triggers that command instead of sending the request directly to the receiver. Note that the sender isn’t responsible for creating the command object. Usually, it gets a pre-created command from the client via the constructor.
+1. The **Handler** declares the interface, common for all concrete handlers. It usually contains just a single method for handling requests, but sometimes it may also have another method for setting the next handler on the chain.
 
-2. The **Command** interface usually declares just a single method for executing the command.
+2. The **Base Handler** is an optional class where you can put the boilerplate code that’s common to all handler classes.
 
-3. **Concrete Commands** implement various kinds of requests. A concrete command isn’t supposed to perform the work on its own, but rather to pass the call to one of the business logic objects. However, for the sake of simplifying the code, these classes can be merged.
+   Usually, this class defines a field for storing a reference to the next handler. The clients can build a chain by passing a handler to the constructor or setter of the previous handler. The class may also implement the default handling behavior: it can pass execution to the next handler after checking for its existence.
 
-   Parameters required to execute a method on a receiving object can be declared as fields in the concrete command. You can make command objects immutable by only allowing the initialization of these fields via the constructor.
+3. **Concrete Handlers** contain the actual code for processing requests. Upon receiving a request, each handler must decide whether to process it and, additionally, whether to pass it along the chain.
 
-4. The **Receiver** class contains some business logic. Almost any object may act as a receiver. Most commands only handle the details of how a request is passed to the receiver, while the receiver itself does the actual work.
+   Handlers are usually self-contained and immutable, accepting all necessary data just once via the constructor.
 
-5. The **Client** creates and configures concrete command objects. The client must pass all of the request parameters, including a receiver instance, into the command’s constructor. After that, the resulting command may be associated with one or multiple senders.
+4. The **Client** may compose chains just once or compose them dynamically, depending on the application’s logic. Note that a request can be sent to any handler in the chain—it doesn’t have to be the first one.
 
 ##  Applicability :computer:
 
-- **Use the Command pattern when you want to parametrize objects with operations.**
-  - The Command pattern can turn a specific method call into a stand-alone object. This change opens up a lot of interesting uses: you can pass commands as method arguments, store them inside other objects, switch linked commands at runtime, etc.
-  - Here’s an example: you’re developing a GUI component such as a context menu, and you want your users to be able to configure menu items that trigger operations when an end user clicks an item.
-- **Use the Command pattern when you want to queue operations, schedule their execution, or execute them remotely.**
-  - As with any other object, a command can be serialized, which means converting it to a string that can be easily written to a file or a database. Later, the string can be restored as the initial command object. Thus, you can delay and schedule command execution. But there’s even more! In the same way, you can queue, log or send commands over the network.
--  **Use the Command pattern when you want to implement reversible operations.**
-  - Although there are many ways to implement undo/redo, the Command pattern is perhaps the most popular of all.	
-  - To be able to revert operations, you need to implement the history of performed operations. The command history is a stack that contains all executed command objects along with related backups of the application’s state.
-  - This method has two drawbacks. First, it isn’t that easy to save an application’s state because some of it can be private. This problem can be mitigated with the **Memento** pattern.
-  - Second, the state backups may consume quite a lot of RAM. Therefore, sometimes you can resort to an alternative implementation: instead of restoring the past state, the command performs the inverse operation. The reverse operation also has a price: it may turn out to be hard or even impossible to implement.
+- **Use the Chain of Responsibility pattern when your program is expected to process different kinds of requests in various ways, but the exact types of requests and their sequences are unknown beforehand.**
+  - The pattern lets you link several handlers into one chain and, upon receiving a request, “ask” each handler whether it can process it. This way all handlers get a chance to process the request.
+
+- **Use the pattern when it’s essential to execute several handlers in a particular order.**
+  - Since you can link the handlers in the chain in any order, all requests will get through the chain exactly as you planned.
+
+- **Use the CoR pattern when the set of handlers and their order are supposed to change at runtime.**
+  - If you provide setters for a reference field inside the handler classes, you’ll be able to insert, remove or reorder handlers dynamically.
 
 ## How to implement :hammer:
 
-1. Declare the command interface with a single execution method.
-2. Start extracting requests into concrete command classes that implement the command interface. Each class must have a set of fields for storing the request arguments along with a reference to the actual receiver object. All these values must be initialized via the command’s constructor.
-3. Identify classes that will act as *senders*. Add the fields for storing commands into these classes. Senders should communicate with their commands only via the command interface. Senders usually don’t create command objects on their own, but rather get them from the client code.
-4. Change the senders so they execute the command instead of sending a request to the receiver directly.
-5. The client should initialize objects in the following order:
-   - Create receivers.
-   - Create commands, and associate them with receivers if needed.
-   - Create senders, and associate them with specific commands.
+1. Declare the handler interface and describe the signature of a method for handling requests.
+
+   Decide how the client will pass the request data into the method. The most flexible way is to convert the request into an object and pass it to the handling method as an argument.
+
+2. To eliminate duplicate boilerplate code in concrete handlers, it might be worth creating an abstract base handler class, derived from the handler interface.
+
+   This class should have a field for storing a reference to the next handler in the chain. Consider making the class immutable. However, if you plan to modify chains at runtime, you need to define a setter for altering the value of the reference field.
+
+   You can also implement the convenient default behavior for the handling method, which is to forward the request to the next object unless there’s none left. Concrete handlers will be able to use this behavior by calling the parent method.
+
+3. One by one create concrete handler subclasses and implement their handling methods. Each handler should make two decisions when receiving a request:
+
+   - Whether it’ll process the request.
+   - Whether it’ll pass the request along the chain.
+
+4. The client may either assemble chains on its own or receive pre-built chains from other objects. In the latter case, you must implement some factory classes to build chains according to the configuration or environment settings.
+
+5. The client may trigger any handler in the chain, not just the first one. The request will be passed along the chain until some handler refuses to pass it further or until it reaches the end of the chain.
+
+6. Due to the dynamic nature of the chain, the client should be ready to handle the following scenarios:
+
+   - The chain may consist of a single link.
+   - Some requests may not reach the end of the chain.
+   - Others may reach the end of the chain unhandled.
 
 ## Pros and Cons :balance_scale:
 
 **Pros**
 
-- *Single Responsibility Principle*. You can decouple classes that invoke operations from classes that perform these operations.
--  *Open/Closed Principle*. You can introduce new commands into the app without breaking existing client code.
--  You can implement undo/redo.
--  You can implement deferred execution of operations.
--  You can assemble a set of simple commands into a complex one.
+-  You can control the order of request handling.
+-  *Single Responsibility Principle*. You can decouple classes that invoke operations from classes that perform operations.
+-  *Open/Closed Principle*. You can introduce new handlers into the app without breaking the existing client code.
 
 **Cons**
 
-- The code may become more complicated since you’re introducing a whole new layer between senders and receivers.
+- Some requests may end up unhandled
 
 ## Relations with Other Patterns :family:
 
-- **Chain of Responsibility**, **Command**, **Mediator** and **Observer**  address various ways of connecting senders and receivers of requests:
+- **Chain of Responsibility**, **Command**, **Mediator** and **Observer** address various ways of connecting senders and receivers of requests:
 
   - *Chain of Responsibility* passes a request sequentially along a dynamic chain of potential receivers until one of them handles it.
   - *Command* establishes unidirectional connections between senders and receivers.
   - *Mediator* eliminates direct connections between senders and receivers, forcing them to communicate indirectly via a mediator object.
   - *Observer* lets receivers dynamically subscribe to and unsubscribe from receiving requests.
 
+- **Chain of Responsibility** is often used in conjunction with **Composite**. In this case, when a leaf component gets a request, it may pass it through the chain of all of the parent components down to the root of the object tree.
+
 - Handlers in **Chain of Responsibility** can be implemented as **Commands**. In this case, you can execute a lot of different operations over the same context object, represented by a request.
 
   However, there’s another approach, where the request itself is a *Command* object. In this case, you can execute the same operation in a series of different contexts linked into a chain.
 
-- You can use **Command** and **Memento** together when implementing “undo”. In this case, commands are responsible for performing various operations over a target object, while mementos save the state of that object just before a command gets executed.
+- **Chain of Responsibility**] and **Decorator** have very similar class structures. Both patterns rely on recursive composition to pass the execution through a series of objects. However, there are several crucial differences.
 
-- **Command** and **Strategy** may look similar because you can use both to parameterize an object with some action. However, they have very different intents.
-
-  - You can use *Command* to convert any operation into an object. The operation’s parameters become fields of that object. The conversion lets you defer execution of the operation, queue it, store the history of commands, send commands to remote services, etc.
-  - On the other hand, *Strategy* usually describes different ways of doing the same thing, letting you swap these algorithms within a single context class.
-
-- **Prototype** can help when you need to save copies of **Commands** into history.
-
-- You can treat **Visitor** as a powerful version of the **Command** pattern. Its objects can execute operations over various objects of different classes.
+- The **CoR** handlers can execute arbitrary operations independently of each other. They can also stop passing the request further at any point. On the other hand, various *Decorators* can extend the object’s behavior while keeping it consistent with the base interface. In addition, decorators aren’t allowed to break the flow of the request.
