@@ -82,7 +82,7 @@ Sequence is based on popularity and my desire to learn concrete design pattern:
 - [x] BUILDER (Creational Pattern)
 - [x] COMMAND (Behavioral Pattern)
 - [x] CHAIN OF RESPONSIBILITY (Behavioral Pattern)
-- [ ] PROTOTYPE (Creational Pattern)
+- [x] PROTOTYPE (Creational Pattern)
 - [ ] TEMPLATE METHOD (Behavioral Pattern)
 - [ ] PROXY (Structural Pattern)
 - [ ] ITERATOR (Behavioral Pattern)
@@ -95,3 +95,4 @@ Sequence is based on popularity and my desire to learn concrete design pattern:
 - [ ] VISITOR (Behavioral Pattern)
 - [ ] FLYWEIGHT (Structural Pattern)
 
+ 
