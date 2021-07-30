@@ -1,79 +1,82 @@
-# Template Method
+# Proxy
 
 ## Intent :bulb:
 
-**Template Method** is a behavioral design pattern that defines the skeleton of an algorithm in the superclass but lets subclasses override specific steps of the algorithm without changing its structure.
+**Proxy** is a structural design pattern that lets you provide a substitute or placeholder for another object. A proxy controls access to the original object, allowing you to perform something either before or after the request gets through to the original object.
 
 ![](img/1.png)
 
+
+
 ## Problem :disappointed:
 
-Imagine that you’re creating a data mining application that analyzes corporate documents. Users feed the app documents in various formats (PDF, DOC, CSV), and it tries to extract meaningful data from these docs in a uniform format.
-
-The first version of the app could work only with DOC files. In the following version, it was able to support CSV files. A month later, you “taught” it to extract data from PDF files.
+Why would you want to control access to an object? Here is an example: you have a massive object that consumes a vast amount of system resources. You need it from time to time, but not always.
 
 ![](img/2.png)
 
-At some point, you noticed that all three classes have a lot of similar code. While the code for dealing with various data formats was entirely different in all classes, the code for data processing and analysis is almost identical. Wouldn’t it be great to get rid of the code duplication, leaving the algorithm structure intact?
+You could implement lazy initialization: create this object only when it’s actually needed. All of the object’s clients would need to execute some deferred initialization code. Unfortunately, this would probably cause a lot of code duplication.
 
-There was another problem related to client code that used these classes. It had lots of conditionals that picked a proper course of action depending on the class of the processing object. 
+In an ideal world, we’d want to put this code directly into our object’s class, but that isn’t always possible. For instance, the class may be part of a closed 3rd-party library.
 
 ## Solution :smile:
 
-The Template Method pattern suggests that you break down an algorithm into a series of steps, turn these steps into methods, and put a series of calls to these methods inside a single ***template method.*** The steps may either be `abstract`, or have some default implementation.
-
-To use the algorithm, the client is supposed to provide its own subclass, implement all abstract steps, and override some of the optional ones if needed (but not the template method itself).
-
-**In our example**
-
-Let’s see how this will play out in our data mining app. We can create a base class for all three parsing algorithms. This class defines a template method consisting of a series of calls to various document-processing steps.
+The Proxy pattern suggests that you create a new proxy class with the same interface as an original service object. Then you update your app so that it passes the proxy object to all of the original object’s clients. Upon receiving a request from a client, the proxy creates a real service object and delegates all the work to it.
 
 ![](img/3.png)
 
-At first, we can declare all steps `abstract`, forcing the subclasses to provide their own implementations for these methods. 
-
-Now, let’s see what we can do to get rid of the duplicate code. It looks like the code for opening/closing files and extracting/parsing data is different for various data formats, so there’s no point in touching those methods. However, implementation of other steps, such as analyzing the raw data and composing reports, is very similar, so it can be pulled up into the base class, where subclasses can share that code.
-
-As you can see, we’ve got two types of steps:
-
-- ***abstract steps*** must be implemented by every subclass
-- ***optional steps*** already have some default implementation, but still can be overridden if needed
-
-There’s another type of step, called ***hooks***. A hook is an optional step with an empty body. A template method would work even if a hook isn’t overridden. Usually, hooks are placed before and after crucial steps of algorithms, providing subclasses with additional extension points for an algorithm.
+But what’s the benefit? If you need to execute something either before or after the primary logic of the class, the proxy lets you do this without changing that class. Since the proxy implements the same interface as the original class, it can be passed to any client that expects a real service object.
 
 ## Structure :building_construction:
 
 ![](img/4.png)
 
+
+
 ##  Applicability :computer:
 
-- **Use the Template Method pattern when you want to let clients extend only particular steps of an algorithm, but not the whole algorithm or its structure.**
-  -  The Template Method lets you turn a monolithic algorithm into a series of individual steps which can be easily extended by subclasses while keeping intact the structure defined in a superclass.
+- **Lazy initialization (virtual proxy). This is when you have a heavyweight service object that wastes system resources by being always up, even though you only need it from time to time.**
+  - Instead of creating the object when the app launches, you can delay the object’s initialization to a time when it’s really needed.
 
-- **Use the pattern when you have several classes that contain almost identical algorithms with some minor differences. As a result, you might need to modify all classes when the algorithm changes.**
-  - When you turn such an algorithm into a template method, you can also pull up the steps with similar implementations into a superclass, eliminating code duplication. Code that varies between subclasses can remain in subclasses.
+- **Access control (protection proxy). This is when you want only specific clients to be able to use the service object; for instance, when your objects are crucial parts of an operating system and clients are various launched applications (including malicious ones).**
+  - The proxy can pass the request to the service object only if the client’s credentials match some criteria.
+
+- **Local execution of a remote service (remote proxy). This is when the service object is located on a remote server.**
+  - In this case, the proxy passes the client request over the network, handling all of the nasty details of working with the network.
+
+-  **Logging requests (logging proxy). This is when you want to keep a history of requests to the service object.**
+  - The proxy can log each request before passing it to the service.
+
+- **Caching request results (caching proxy). This is when you need to cache results of client requests and manage the life cycle of this cache, especially if results are quite large.**
+  - The proxy can implement caching for recurring requests that always yield the same results. The proxy may use the parameters of requests as the cache keys.
+
+- **Smart reference. This is when you need to be able to dismiss a heavyweight object once there are no clients that use it.**
+  - The proxy can keep track of clients that obtained a reference to the service object or its results. From time to time, the proxy may go over the clients and check whether they are still active. If the client list gets empty, the proxy might dismiss the service object and free the underlying system resources.
+  - The proxy can also track whether the client had modified the service object. Then the unchanged objects may be reused by other clients.
 
 ## How to implement :hammer:
 
-1. Analyze the target algorithm to see whether you can break it into steps. Consider which steps are common to all subclasses and which ones will always be unique.
-2. Create the abstract base class and declare the template method and a set of abstract methods representing the algorithm’s steps. Outline the algorithm’s structure in the template method by executing corresponding steps. Consider making the template method `final` to prevent subclasses from overriding it.
-3. It’s okay if all the steps end up being abstract. However, some steps might benefit from having a default implementation. Subclasses don’t have to implement those methods.
-4. Think of adding hooks between the crucial steps of the algorithm.
-5. For each variation of the algorithm, create a new concrete subclass. It *must* implement all of the abstract steps, but *may* also override some of the optional ones.
+1. If there’s no pre-existing service interface, create one to make proxy and service objects interchangeable. Extracting the interface from the service class isn’t always possible, because you’d need to change all of the service’s clients to use that interface. Plan B is to make the proxy a subclass of the service class, and this way it’ll inherit the interface of the service.
+2. Create the proxy class. It should have a field for storing a reference to the service. Usually, proxies create and manage the whole life cycle of their services. On rare occasions, a service is passed to the proxy via a constructor by the client.
+3. Implement the proxy methods according to their purposes. In most cases, after doing some work, the proxy should delegate the work to the service object.
+4. Consider introducing a creation method that decides whether the client gets a proxy or a real service. This can be a simple static method in the proxy class or a full-blown factory method.
+5. Consider implementing lazy initialization for the service object.
 
 ## Pros and Cons :balance_scale:
 
 **Pros**
 
--  You can let clients override only certain parts of a large algorithm, making them less affected by changes that happen to other parts of the algorithm.
--  You can pull the duplicate code into a superclass.
-- **Cons**
+-  You can control the service object without clients knowing about it.
+-  You can manage the lifecycle of the service object when clients don’t care about it.
+-  The proxy works even if the service object isn’t ready or is not available.
+-  *Open/Closed Principle*. You can introduce new proxies without changing the service or clients.
 
--  Some clients may be limited by the provided skeleton of an algorithm.
--  You might violate the *Liskov Substitution Principle* by suppressing a default step implementation via a subclass.
--  Template methods tend to be harder to maintain the more steps they have.
+**Cons**
+
+-  The code may become more complicated since you need to introduce a lot of new classes.
+-  The response from the service might get delayed.
 
 ## Relations with Other Patterns :family:
 
-- **Factory Method** is a specialization of **Template Method**. At the same time, a *Factory Method* may serve as a step in a large *Template Method*.
-- **Template Method** is based on inheritance: it lets you alter parts of an algorithm by extending those parts in subclasses. **Strategy** is based on composition: you can alter parts of the object’s behavior by supplying it with different strategies that correspond to that behavior. *Template Method* works at the class level, so it’s static. *Strategy* works on the object level, letting you switch behaviors at runtime.
+- **Adapter** provides a different interface to the wrapped object, **Proxy** provides it with the same interface, and **Decorator** provides it with an enhanced interface.
+- **Facade** is similar to **Proxy** in that both buffer a complex entity and initialize it on its own. Unlike *Facade*, *Proxy* has the same interface as its service object, which makes them interchangeable.
+- **Decorator** and **Proxy** have similar structures, but very different intents. Both patterns are built on the composition principle, where one object is supposed to delegate some of the work to another. The difference is that a *Proxy* usually manages the life cycle of its service object on its own, whereas the composition of *Decorators* is always controlled by the client.

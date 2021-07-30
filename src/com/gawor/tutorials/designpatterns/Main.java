@@ -7,52 +7,38 @@ refer to image in `doc.md/Structure`
  */
 
 /*
-    In this example the *algorithm* in `Template Method's` context is:
-    - Process of posting on SocialNetwork such as Facebook or Twitter
-    so...
-     Template Method pattern defines an algorithm of working with a social network.
-     Subclasses that match a particular social network,
-     implement these steps according to the API provided by the social network.
+    In this example we will present "Cashing Proxy" (see `doc.md/Applicability`).
+
+    We will introduce lazy initialization and caching to a 3rd-party YouTube integration library.
+
+    <h2> But, what is caching? </h2>
+
+    The library provides us with the video downloading class. However, it’s very inefficient.
+    If the client application requests the same video multiple times, the library just downloads it over and over,
+    instead of caching and reusing the first downloaded file.
+
+    The proxy class implements the same interface as the original downloader and delegates it all the work.
+    However, it keeps track of the downloaded files and returns the cached result when the app requests the same video multiple times.
  */
 
-import com.gawor.tutorials.designpatterns.socialnetworks.Facebook;
-import com.gawor.tutorials.designpatterns.socialnetworks.SocialNetwork;
-import com.gawor.tutorials.designpatterns.socialnetworks.Twitter;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import com.gawor.tutorials.designpatterns.youtubelib.IThirdPartyYouTubeLib;
+import com.gawor.tutorials.designpatterns.youtubelib.ThirdPartyYouTubeClass;
+import com.gawor.tutorials.designpatterns.youtubelib.YouTubeCacheProxy;
 
 //---// C L I E N T   C O D E
 public class Main {
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
 
-        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-
-        System.out.print("Input user name: ");
-        String userName = reader.readLine();
-        System.out.print("Input password: ");
-        String password = reader.readLine();
-
-        // Enter the message.
-        System.out.print("Input message: ");
-        String message = reader.readLine();
-
-        SocialNetwork network = null;
-
-        System.out.println("\nChoose social network for posting message.\n" +
-                "1 - Facebook\n" +
-                "2 - Twitter");
-        int choice = Integer.parseInt(reader.readLine());
-
-        // Create proper network object and send the message.
-        if (choice == 1) {
-            network = new Facebook(userName, password);
-        } else if (choice == 2) {
-            network = new Twitter(userName, password);
-        }
-        // Call the `Template Method`
-        network.post(message);
+        IThirdPartyYouTubeLib youTubeLib = new YouTubeCacheProxy(new ThirdPartyYouTubeClass());
+        System.out.println("--------    List all videos     ---------");
+        youTubeLib.listVideos();
+        System.out.println("\n--------   Download video 2     ---------");
+        System.out.println(youTubeLib.downloadVideo(2));
+        System.out.println("\n--------   Download video 5     ---------");
+        System.out.println(youTubeLib.downloadVideo(5));
+        System.out.println("\n-------- Download video 2 again ---------");
+        System.out.println(youTubeLib.downloadVideo(2));
     }
 }
