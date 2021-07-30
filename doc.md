@@ -1,107 +1,79 @@
-# Prototype
-
-also known as **Clone**
+# Template Method
 
 ## Intent :bulb:
 
-**Prototype** is a creational design pattern that lets you copy existing objects without making your code dependent on their classes.
+**Template Method** is a behavioral design pattern that defines the skeleton of an algorithm in the superclass but lets subclasses override specific steps of the algorithm without changing its structure.
 
 ![](img/1.png)
 
 ## Problem :disappointed:
 
-Say you have an object, and you want to create an exact copy of it. How would you do it? First, you have to create a new object of the same class. Then you have to go through all the fields of the original object and copy their values over to the new object.
+Imagine that you’re creating a data mining application that analyzes corporate documents. Users feed the app documents in various formats (PDF, DOC, CSV), and it tries to extract meaningful data from these docs in a uniform format.
 
-Nice! But there’s a catch. Not all objects can be copied that way because some of the object’s fields may be private and not visible from outside of the object itself.
+The first version of the app could work only with DOC files. In the following version, it was able to support CSV files. A month later, you “taught” it to extract data from PDF files.
 
 ![](img/2.png)
 
-There’s one more problem with the direct approach. Since you have to know the object’s class to create a duplicate, your code becomes dependent on that class. If the extra dependency doesn’t scare you, there’s another catch. Sometimes you only know the interface that the object follows, but not its concrete class, when, for example, a parameter in a method accepts any objects that follow some interface.
+At some point, you noticed that all three classes have a lot of similar code. While the code for dealing with various data formats was entirely different in all classes, the code for data processing and analysis is almost identical. Wouldn’t it be great to get rid of the code duplication, leaving the algorithm structure intact?
+
+There was another problem related to client code that used these classes. It had lots of conditionals that picked a proper course of action depending on the class of the processing object. 
 
 ## Solution :smile:
 
-The Prototype pattern delegates the cloning process to the actual objects that are being cloned. The pattern declares a common interface for all objects that support cloning. This interface lets you clone an object without coupling your code to the class of that object. Usually, such an interface contains just a single `clone` method.
+The Template Method pattern suggests that you break down an algorithm into a series of steps, turn these steps into methods, and put a series of calls to these methods inside a single ***template method.*** The steps may either be `abstract`, or have some default implementation.
 
+To use the algorithm, the client is supposed to provide its own subclass, implement all abstract steps, and override some of the optional ones if needed (but not the template method itself).
 
+**In our example**
 
-**`clone` method**
+Let’s see how this will play out in our data mining app. We can create a base class for all three parsing algorithms. This class defines a template method consisting of a series of calls to various document-processing steps.
 
-The implementation of the `clone` method is very similar in all classes. The method creates an object of the current class and carries over all of the field values of the old object into the new one. You can even copy private fields because most programming languages let objects access private fields of other objects that belong to the same class.
+![](img/3.png)
 
+At first, we can declare all steps `abstract`, forcing the subclasses to provide their own implementations for these methods. 
 
+Now, let’s see what we can do to get rid of the duplicate code. It looks like the code for opening/closing files and extracting/parsing data is different for various data formats, so there’s no point in touching those methods. However, implementation of other steps, such as analyzing the raw data and composing reports, is very similar, so it can be pulled up into the base class, where subclasses can share that code.
 
-An object that supports cloning is called a ***prototype***. 
+As you can see, we’ve got two types of steps:
 
->When your objects have dozens of fields and hundreds of possible configurations, cloning them might serve as an alternative to subclassing.
->
->![](img/3.png)
->
->Here’s how it works: you create a set of objects, configured in various ways. When you need an object like the one you’ve configured, you just clone a prototype instead of constructing a new object from scratch.
+- ***abstract steps*** must be implemented by every subclass
+- ***optional steps*** already have some default implementation, but still can be overridden if needed
 
-
+There’s another type of step, called ***hooks***. A hook is an optional step with an empty body. A template method would work even if a hook isn’t overridden. Usually, hooks are placed before and after crucial steps of algorithms, providing subclasses with additional extension points for an algorithm.
 
 ## Structure :building_construction:
 
-U can implement *Prototype* in two ways:
-
-- **Basic implementation**
-
-  ![](img/4.png)
-
-1. The **Prototype** interface declares the cloning methods. In most cases, it’s a single `clone` method.
-2. The **Concrete Prototype** class implements the cloning method. In addition to copying the original object’s data to the clone, this method may also handle some edge cases of the cloning process related to cloning linked objects, untangling recursive dependencies, etc.
-3. The **Client** can produce a copy of any object that follows the prototype interface.
-
-- **Registry implementation**
-
-  ![](img/5.png)
-
-  1. The **Prototype Registry** provides an easy way to access frequently-used prototypes. It stores a set of pre-built objects that are ready to be copied. The simplest prototype registry is a `name → prototype` hash map. However, if you need better search criteria than a simple name, you can build a much more robust version of the registry.
+![](img/4.png)
 
 ##  Applicability :computer:
 
--  **Use the Prototype pattern when your code shouldn’t depend on the concrete classes of objects that you need to copy.**
-  - This happens a lot when your code works with objects passed to you from 3rd-party code via some interface. The concrete classes of these objects are unknown, and you couldn’t depend on them even if you wanted to.
-  - The Prototype pattern provides the client code with a general interface for working with all objects that support cloning. This interface makes the client code independent from the concrete classes of objects that it clones.
--  **Use the pattern when you want to reduce the number of subclasses that only differ in the way they initialize their respective objects. Somebody could have created these subclasses to be able to create objects with a specific configuration.**
-  - The Prototype pattern lets you use a set of pre-built objects, configured in various ways, as prototypes.
-  - Instead of instantiating a subclass that matches some configuration, the client can simply look for an appropriate prototype and clone it.
+- **Use the Template Method pattern when you want to let clients extend only particular steps of an algorithm, but not the whole algorithm or its structure.**
+  -  The Template Method lets you turn a monolithic algorithm into a series of individual steps which can be easily extended by subclasses while keeping intact the structure defined in a superclass.
+
+- **Use the pattern when you have several classes that contain almost identical algorithms with some minor differences. As a result, you might need to modify all classes when the algorithm changes.**
+  - When you turn such an algorithm into a template method, you can also pull up the steps with similar implementations into a superclass, eliminating code duplication. Code that varies between subclasses can remain in subclasses.
 
 ## How to implement :hammer:
 
-1. Create the prototype interface and declare the `clone` method in it. Or just add the method to all classes of an existing class hierarchy, if you have one.
-
-2. A prototype class must define the alternative constructor that accepts an object of that class as an argument. The constructor must copy the values of all fields defined in the class from the passed object into the newly created instance. If you’re changing a subclass, you must call the parent constructor to let the superclass handle the cloning of its private fields.
-
-   If your programming language doesn’t support method overloading, you may define a special method for copying the object data. The constructor is a more convenient place to do this because it delivers the resulting object right after you call the `new` operator.
-
-3. The cloning method usually consists of just one line: running a `new` operator with the prototypical version of the constructor. Note, that every class must explicitly override the cloning method and use its own class name along with the `new` operator. Otherwise, the cloning method may produce an object of a parent class.
-
-4. Optionally, create a centralized prototype registry to store a catalog of frequently used prototypes.
-
-   You can implement the registry as a new factory class or put it in the base prototype class with a static method for fetching the prototype. This method should search for a prototype based on search criteria that the client code passes to the method. The criteria might either be a simple string tag or a complex set of search parameters. After the appropriate prototype is found, the registry should clone it and return the copy to the client.
-
-   Finally, replace the direct calls to the subclasses’ constructors with calls to the factory method of the prototype registry.
+1. Analyze the target algorithm to see whether you can break it into steps. Consider which steps are common to all subclasses and which ones will always be unique.
+2. Create the abstract base class and declare the template method and a set of abstract methods representing the algorithm’s steps. Outline the algorithm’s structure in the template method by executing corresponding steps. Consider making the template method `final` to prevent subclasses from overriding it.
+3. It’s okay if all the steps end up being abstract. However, some steps might benefit from having a default implementation. Subclasses don’t have to implement those methods.
+4. Think of adding hooks between the crucial steps of the algorithm.
+5. For each variation of the algorithm, create a new concrete subclass. It *must* implement all of the abstract steps, but *may* also override some of the optional ones.
 
 ## Pros and Cons :balance_scale:
 
 **Pros**
 
-- You can clone objects without coupling to their concrete classes.
--  You can get rid of repeated initialization code in favor of cloning pre-built prototypes.
--  You can produce complex objects more conveniently.
--  You get an alternative to inheritance when dealing with configuration presets for complex objects.
+-  You can let clients override only certain parts of a large algorithm, making them less affected by changes that happen to other parts of the algorithm.
+-  You can pull the duplicate code into a superclass.
+- **Cons**
 
-**Cons**
-
-- Cloning complex objects that have circular references might be very tricky.
+-  Some clients may be limited by the provided skeleton of an algorithm.
+-  You might violate the *Liskov Substitution Principle* by suppressing a default step implementation via a subclass.
+-  Template methods tend to be harder to maintain the more steps they have.
 
 ## Relations with Other Patterns :family:
 
-- Many designs start by using **Factory Method** (less complicated and more customizable via subclasses) and evolve toward **Abstract Factory** **Prototype**, or **Builder**(more flexible, but more complicated).
-- **Abstract Factory** classes are often based on a set of **Factory Methods**, but you can also use **Prototype** to compose the methods on these classes.
-- **Prototype** can help when you need to save copies of **Commands **into history.
-- Designs that make heavy use of **Composite **and **Decorator** can often benefit from using **Prototype**. Applying the pattern lets you clone complex structures instead of re-constructing them from scratch.
-- **Prototype** isn’t based on inheritance, so it doesn’t have its drawbacks. On the other hand, *Prototype* requires a complicated initialization of the cloned object. **Factory Method** is based on inheritance but doesn’t require an initialization step.
-- Sometimes **Prototype** can be a simpler alternative to **Memento**. This works if the object, the state of which you want to store in the history, is fairly straightforward and doesn’t have links to external resources, or the links are easy to re-establish.
-- **Abstract Factories**, **Builders **and **Prototypes** can all be implemented as **Singletons**.
+- **Factory Method** is a specialization of **Template Method**. At the same time, a *Factory Method* may serve as a step in a large *Template Method*.
+- **Template Method** is based on inheritance: it lets you alter parts of an algorithm by extending those parts in subclasses. **Strategy** is based on composition: you can alter parts of the object’s behavior by supplying it with different strategies that correspond to that behavior. *Template Method* works at the class level, so it’s static. *Strategy* works on the object level, letting you switch behaviors at runtime.

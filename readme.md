@@ -83,7 +83,7 @@ Sequence is based on popularity and my desire to learn concrete design pattern:
 - [x] COMMAND (Behavioral Pattern)
 - [x] CHAIN OF RESPONSIBILITY (Behavioral Pattern)
 - [x] PROTOTYPE (Creational Pattern)
-- [ ] TEMPLATE METHOD (Behavioral Pattern)
+- [x] TEMPLATE METHOD (Behavioral Pattern)
 - [ ] PROXY (Structural Pattern)
 - [ ] ITERATOR (Behavioral Pattern)
 - [ ] BRIDGE (Structural Pattern)
