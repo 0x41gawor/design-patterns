@@ -1,83 +1,107 @@
-# Iterator
+# Bridge
 
 ## Intent :bulb:
 
-**Iterator** is a behavioral design pattern that lets you traverse elements of a collection without exposing its underlying representation (list, stack, tree, etc.).
+**Bridge** is a structural design pattern that lets you split a large class or a set of closely related classes into two separate hierarchies—abstraction and implementation—which can be developed independently of each other.
 
 ![](img/1.png)
 
 ## Problem :disappointed:
 
-Collections are one of the most used data types in programming. Nonetheless, a collection is just a container for a group of objects.
-
-Most collections store their elements in simple lists. However, some of them are based on stacks, trees, graphs and other complex data structures.
-
-But no matter how a collection is structured, it must provide some way of accessing its elements so that other code can use these elements. There should be a way to go through each element of the collection without accessing the same elements over and over.
-
-This may sound like an easy job if you have a collection based on a list. You just loop over all of the elements. But how do you sequentially traverse elements of a complex data structure, such as a tree?
-
-For example, **one day** you might be just fine with depth-first traversal of a tree. Yet **the next day** you might require breadth-first traversal. And the next week, you might need something else, like random access to the tree elements.
+Say you have a geometric `Shape` class with a pair of subclasses: `Circle` and `Square`. You want to extend this class hierarchy to incorporate colors, so you plan to create `Red` and `Blue` shape subclasses. However, since you already have two subclasses, you’ll need to create four class combinations such as `BlueCircle` and `RedSquare`.
 
 ![](img/2.png)
 
-Adding more and more traversal algorithms to the collection gradually blurs its primary responsibility, which is efficient data storage. Additionally, some algorithms might be tailored for a specific application, so including them into a generic collection class would be weird.
-
-On the other hand, the client code that’s supposed to work with various collections may not even care how they store their elements. However, since collections all provide different ways of accessing their elements, you have no option other than to couple your code to the specific collection classes.
+Adding new shape types and colors to the hierarchy will grow it exponentially. For example, to add a triangle shape you’d need to introduce two subclasses, one for each color. And after that, adding a new color would require creating three subclasses, one for each shape type. The further we go, the worse it becomes.
 
 ## Solution :smile:
 
-The main idea of the Iterator pattern is to extract the traversal behavior of a collection into a separate object called an *iterator*.
+This problem occurs because we’re trying to extend the shape classes in two independent dimensions: by form and by color. That’s a very common issue with class inheritance.
+
+The Bridge pattern attempts to solve this problem by switching from inheritance to the object composition. What this means is that you extract one of the dimensions into a separate class hierarchy, so that the original classes will reference an object of the new hierarchy, instead of having all of its state and behaviors within one class.
 
 ![](img/3.png)
 
-In addition to implementing the algorithm itself, an iterator object encapsulates all of the traversal details, such as the current position and how many elements are left till the end. Because of this, several iterators can go through the same collection at the same time, independently of each other.
+Following this approach, we can extract the color-related code into its own class with two subclasses: `Red` and `Blue`. The `Shape` class then gets a reference field pointing to one of the color objects. Now the shape can delegate any color-related work to the linked color object. That reference will act as a bridge between the `Shape` and `Color` classes. From now on, adding new colors won’t require changing the shape hierarchy, and vice versa.
 
-Usually, iterators provide one primary method for fetching elements of the collection. The client can keep running this method until it doesn’t return anything, which means that the iterator has traversed all of the elements.
+**Abstraction and implementation**
 
-All iterators must implement the same interface. This makes the client code compatible with any collection type or any traversal algorithm as long as there’s a proper iterator. If you need a special way to traverse a collection, you just create a new iterator class, without having to change the collection or the client.
+The GoF book introduces the terms *Abstraction* and *Implementation* as part of the Bridge definition. 
+
+***Abstraction*** (also called *interface*) is a high-level control layer for some entity. This layer isn’t supposed to do any real work on its own. It should delegate the work to the ***implementation*** layer (also called *platform*).
+
+
+
+When talking about real applications, the abstraction can be represented by a graphical user interface (GUI), and the implementation could be the underlying operating system code (API) which the GUI layer calls in response to user interactions.
+
+Generally speaking, you can extend such an app in two independent directions:
+
+- Have several different GUIs (for instance, tailored for regular customers or admins).
+- Support several different APIs (for example, to be able to launch the app under Windows, Linux, and macOS).
+
+In a worst-case scenario, this app might look like a giant spaghetti bowl, where hundreds of conditionals connect different types of GUI with various APIs all over the code.
+
+![](img/4.png)
+
+You can bring order to this chaos by extracting the code related to specific interface-platform combinations into separate classes. However, soon you’ll discover that there are *lots* of these classes. The class hierarchy will grow exponentially because adding a new GUI or supporting a different API would require creating more and more classes.
+
+Let’s try to solve this issue with the Bridge pattern. It suggests that we divide the classes into two hierarchies:
+
+- Abstraction: the GUI layer of the app.
+- Implementation: the operating systems’ APIs.
+
+![](img/5.png)
+
+The abstraction object controls the appearance of the app, delegating the actual work to the linked implementation object. Different implementations are interchangeable as long as they follow a common interface, enabling the same GUI to work under Windows and Linux.
+
+As a result, you can change the GUI classes without touching the API-related classes. Moreover, adding support for another operating system only requires creating a subclass in the implementation hierarchy.
 
 ## Structure :building_construction:
 
-![](img/4.png)
+![](img/6.png)
 
 
 
 ##  Applicability :computer:
 
-- **Use the Iterator pattern when your collection has a complex data structure under the hood, but you want to hide its complexity from clients (either for convenience or security reasons).**
-  - The iterator encapsulates the details of working with a complex data structure, providing the client with several simple methods of accessing the collection elements. While this approach is very convenient for the client, it also protects the collection from careless or malicious actions which the client would be able to perform if working with the collection directly.
+- **Use the Bridge pattern when you want to divide and organize a monolithic class that has several variants of some functionality (for example, if the class can work with various database servers).**
+  - The bigger a class becomes, the harder it is to figure out how it works, and the longer it takes to make a change. The changes made to one of the variations of functionality may require making changes across the whole class, which often results in making errors or not addressing some critical side effects.
+  - The Bridge pattern lets you split the monolithic class into several class hierarchies. After this, you can change the classes in each hierarchy independently of the classes in the others. This approach simplifies code maintenance and minimizes the risk of breaking existing code.
 
-- **Use the pattern to reduce duplication of the traversal code across your app.**
-  -  The code of non-trivial iteration algorithms tends to be very bulky. When placed within the business logic of an app, it may blur the responsibility of the original code and make it less maintainable. Moving the traversal code to designated iterators can help you make the code of the application more lean and clean.
+- **Use the pattern when you need to extend a class in several orthogonal (independent) dimensions.**
+  - The Bridge suggests that you extract a separate class hierarchy for each of the dimensions. The original class delegates the related work to the objects belonging to those hierarchies instead of doing everything on its own.
 
-- **Use the Iterator when you want your code to be able to traverse different data structures or when types of these structures are unknown beforehand.**
-  - The pattern provides a couple of generic interfaces for both collections and iterators. Given that your code now uses these interfaces, it’ll still work if you pass it various kinds of collections and iterators that implement these interfaces.
+- **Use the Bridge if you need to be able to switch implementations at runtime.**
+  - Although it’s optional, the Bridge pattern lets you replace the implementation object inside the abstraction. It’s as easy as assigning a new value to a field.
+  - *By the way, this last item is the main reason why so many people confuse the Bridge with the **Strategy** pattern. Remember that a pattern is more than just a certain way to structure your classes. It may also communicate intent and a problem being addressed.*
 
 ## How to implement :hammer:
 
-1. Declare the iterator interface. At the very least, it must have a method for fetching the next element from a collection. But for the sake of convenience you can add a couple of other methods, such as fetching the previous element, tracking the current position, and checking the end of the iteration.
-2. Declare the collection interface and describe a method for fetching iterators. The return type should be equal to that of the iterator interface. You may declare similar methods if you plan to have several distinct groups of iterators.
-3. Implement concrete iterator classes for the collections that you want to be traversable with iterators. An iterator object must be linked with a single collection instance. Usually, this link is established via the iterator’s constructor.
-4. Implement the collection interface in your collection classes. The main idea is to provide the client with a shortcut for creating iterators, tailored for a particular collection class. The collection object must pass itself to the iterator’s constructor to establish a link between them.
-5. Go over the client code to replace all of the collection traversal code with the use of iterators. The client fetches a new iterator object each time it needs to iterate over the collection elements.
+1. Identify the orthogonal dimensions in your classes. These independent concepts could be: abstraction/platform, domain/infrastructure, front-end/back-end, or interface/implementation.
+2. See what operations the client needs and define them in the base abstraction class.
+3. Determine the operations available on all platforms. Declare the ones that the abstraction needs in the general implementation interface.
+4. For all platforms in your domain create concrete implementation classes, but make sure they all follow the implementation interface.
+5. Inside the abstraction class, add a reference field for the implementation type. The abstraction delegates most of the work to the implementation object that’s referenced in that field.
+6. If you have several variants of high-level logic, create refined abstractions for each variant by extending the base abstraction class.
+7. The client code should pass an implementation object to the abstraction’s constructor to associate one with the other. After that, the client can forget about the implementation and work only with the abstraction object.
 
 ## Pros and Cons :balance_scale:
 
 **Pros**
 
-- *Single Responsibility Principle*. You can clean up the client code and the collections by extracting bulky traversal algorithms into separate classes.
--  *Open/Closed Principle*. You can implement new types of collections and iterators and pass them to existing code without breaking anything.
--  You can iterate over the same collection in parallel because each iterator object contains its own iteration state.
--  For the same reason, you can delay an iteration and continue it when needed.
+-  You can create platform-independent classes and apps.
+-  The client code works with high-level abstractions. It isn’t exposed to the platform details.
+-  *Open/Closed Principle*. You can introduce new abstractions and implementations independently from each other.
+-  *Single Responsibility Principle*. You can focus on high-level logic in the abstraction and on platform details in the implementation.
 
 **Cons**
 
--  Applying the pattern can be an overkill if your app only works with simple collections.
--  Using an iterator may be less efficient than going through elements of some specialized collections directly.
+ You might make the code more complicated by applying the pattern to a highly cohesive class.
 
 ## Relations with Other Patterns :family:
 
-- You can use **Iterators**] to traverse **Composite**] trees.
-- You can use **Factory Method** along with **Iterator**] to let collection subclasses return different types of iterators that are compatible with the collections.
-- You can use **Memento**] along with **Iterator** to capture the current iteration state and roll it back if necessary.
-- You can use **Visitor**] along with **Iterator**] to traverse a complex data structure and execute some operation over its elements, even if they all have different classes.
+- **Bridge** is usually designed up-front, letting you develop parts of an application independently of each other. On the other hand, **Adapter** is commonly used with an existing app to make some otherwise-incompatible classes work together nicely.
+- **Bridge**, **State**, **Strategy** (and to some degree **Adapter**) have very similar structures. Indeed, all of these patterns are based on composition, which is delegating work to other objects. However, they all solve different problems. A pattern isn’t just a recipe for structuring your code in a specific way. It can also communicate to other developers the problem the pattern solves.
+- You can use **Abstract Factory** along with **Bridge**). This pairing is useful when some abstractions defined by *Bridge* can only work with specific implementations. In this case, *Abstract Factory* can encapsulate these relations and hide the complexity from the client code.
+- You can combine **Builder** with **Bridge**: the director class plays the role of the abstraction, while different builders act as implementations.
+

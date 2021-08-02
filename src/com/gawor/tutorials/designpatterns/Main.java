@@ -1,5 +1,10 @@
 package com.gawor.tutorials.designpatterns;
 
+import com.gawor.tutorials.designpatterns.devices.IDevice;
+import com.gawor.tutorials.designpatterns.devices.Radio;
+import com.gawor.tutorials.designpatterns.devices.TV;
+import com.gawor.tutorials.designpatterns.remotes.AdvancedRemote;
+import com.gawor.tutorials.designpatterns.remotes.BasicRemote;
 /*
 Comments in this case:
 //---// T H I S   C A S E
@@ -7,34 +12,34 @@ refer to image in `doc.md/Structure`
  */
 
 /*
-    Facebook keeps your friend in a collection called graph.
-    Let's assume you've met Andrew in work and you added yourselves as friends of facebook.
-    Now Facebook would like to propose some new friends for you based on this event. What Facebook will do?
-    Iterate through Andrew friend list and create list based on the chance of you knowing them in real life.
-    You met Andrew in work, so his coworkers will be the first ones on this list. And this is the clue!
+    This example shows separation between the classes of remotes and devices that they control.
 
-    But it is also possible that Andrew's brother visited him in work and you met him also and we should take it into account.
-    So Facebook creates list of Andrew in some order and shows you first `n` positions.
+    Remotes act as abstractions, and devices are their implementations.
+    Thanks to the common interfaces, the same remotes can work with different devices and vice versa.
 
-    But what if you met Andrew not in workplace, but on some party when he was with his friends?
-    Facebook should iterate through Andrew's friends in different order.
-
-    Facebook does not sort graph, it just iterates it in different manner.
-
-    ***
-    In this example we are build very bad code, to simplify the situation.
-    We have Andrew profile. With hardcoded friend list sorted by how close Andrew is with them.
+    The Bridge pattern allows changing or even creating new classes without touching the code of the opposite hierarchy.
  */
+
+
 
 //---// C L I E N T   C O D E
 public class Main {
 
     public static void main(String[] args) {
+        testDevice(new TV());
+        testDevice(new Radio());
+    }
 
-        Profile Andrew = new Profile("Andrew");
-        // You can see the same list, but iterated in different way
-        Andrew.proposeForCoworker();
-        Andrew.proposeForFamily();
-        Andrew.proposeForBuddy();
+    public static void testDevice(IDevice device) {
+        System.out.println("Tests with basic remote.");
+        BasicRemote basicRemote = new BasicRemote(device);
+        basicRemote.power();
+        device.printStatus();
+
+        System.out.println("Tests with advanced remote.");
+        AdvancedRemote advancedRemote = new AdvancedRemote(device);
+        advancedRemote.power();
+        advancedRemote.mute();
+        device.printStatus();
     }
 }

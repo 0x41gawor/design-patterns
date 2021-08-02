@@ -86,7 +86,7 @@ Sequence is based on popularity and my desire to learn concrete design pattern:
 - [x] TEMPLATE METHOD (Behavioral Pattern)
 - [x] PROXY (Structural Pattern)
 - [x] ITERATOR (Behavioral Pattern)
-- [ ] BRIDGE (Structural Pattern)
+- [x] BRIDGE (Structural Pattern)
 - [ ] ABSTRACT FACTORY (Creational Pattern)
 - [ ] MEDIATOR (Behavioral Pattern)
 - [ ] FACADE (Structural Pattern)
