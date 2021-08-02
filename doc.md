@@ -1,30 +1,40 @@
-# Proxy
+# Iterator
 
 ## Intent :bulb:
 
-**Proxy** is a structural design pattern that lets you provide a substitute or placeholder for another object. A proxy controls access to the original object, allowing you to perform something either before or after the request gets through to the original object.
+**Iterator** is a behavioral design pattern that lets you traverse elements of a collection without exposing its underlying representation (list, stack, tree, etc.).
 
 ![](img/1.png)
 
-
-
 ## Problem :disappointed:
 
-Why would you want to control access to an object? Here is an example: you have a massive object that consumes a vast amount of system resources. You need it from time to time, but not always.
+Collections are one of the most used data types in programming. Nonetheless, a collection is just a container for a group of objects.
+
+Most collections store their elements in simple lists. However, some of them are based on stacks, trees, graphs and other complex data structures.
+
+But no matter how a collection is structured, it must provide some way of accessing its elements so that other code can use these elements. There should be a way to go through each element of the collection without accessing the same elements over and over.
+
+This may sound like an easy job if you have a collection based on a list. You just loop over all of the elements. But how do you sequentially traverse elements of a complex data structure, such as a tree?
+
+For example, **one day** you might be just fine with depth-first traversal of a tree. Yet **the next day** you might require breadth-first traversal. And the next week, you might need something else, like random access to the tree elements.
 
 ![](img/2.png)
 
-You could implement lazy initialization: create this object only when it’s actually needed. All of the object’s clients would need to execute some deferred initialization code. Unfortunately, this would probably cause a lot of code duplication.
+Adding more and more traversal algorithms to the collection gradually blurs its primary responsibility, which is efficient data storage. Additionally, some algorithms might be tailored for a specific application, so including them into a generic collection class would be weird.
 
-In an ideal world, we’d want to put this code directly into our object’s class, but that isn’t always possible. For instance, the class may be part of a closed 3rd-party library.
+On the other hand, the client code that’s supposed to work with various collections may not even care how they store their elements. However, since collections all provide different ways of accessing their elements, you have no option other than to couple your code to the specific collection classes.
 
 ## Solution :smile:
 
-The Proxy pattern suggests that you create a new proxy class with the same interface as an original service object. Then you update your app so that it passes the proxy object to all of the original object’s clients. Upon receiving a request from a client, the proxy creates a real service object and delegates all the work to it.
+The main idea of the Iterator pattern is to extract the traversal behavior of a collection into a separate object called an *iterator*.
 
 ![](img/3.png)
 
-But what’s the benefit? If you need to execute something either before or after the primary logic of the class, the proxy lets you do this without changing that class. Since the proxy implements the same interface as the original class, it can be passed to any client that expects a real service object.
+In addition to implementing the algorithm itself, an iterator object encapsulates all of the traversal details, such as the current position and how many elements are left till the end. Because of this, several iterators can go through the same collection at the same time, independently of each other.
+
+Usually, iterators provide one primary method for fetching elements of the collection. The client can keep running this method until it doesn’t return anything, which means that the iterator has traversed all of the elements.
+
+All iterators must implement the same interface. This makes the client code compatible with any collection type or any traversal algorithm as long as there’s a proper iterator. If you need a special way to traverse a collection, you just create a new iterator class, without having to change the collection or the client.
 
 ## Structure :building_construction:
 
@@ -34,49 +44,40 @@ But what’s the benefit? If you need to execute something either before or afte
 
 ##  Applicability :computer:
 
-- **Lazy initialization (virtual proxy). This is when you have a heavyweight service object that wastes system resources by being always up, even though you only need it from time to time.**
-  - Instead of creating the object when the app launches, you can delay the object’s initialization to a time when it’s really needed.
+- **Use the Iterator pattern when your collection has a complex data structure under the hood, but you want to hide its complexity from clients (either for convenience or security reasons).**
+  - The iterator encapsulates the details of working with a complex data structure, providing the client with several simple methods of accessing the collection elements. While this approach is very convenient for the client, it also protects the collection from careless or malicious actions which the client would be able to perform if working with the collection directly.
 
-- **Access control (protection proxy). This is when you want only specific clients to be able to use the service object; for instance, when your objects are crucial parts of an operating system and clients are various launched applications (including malicious ones).**
-  - The proxy can pass the request to the service object only if the client’s credentials match some criteria.
+- **Use the pattern to reduce duplication of the traversal code across your app.**
+  -  The code of non-trivial iteration algorithms tends to be very bulky. When placed within the business logic of an app, it may blur the responsibility of the original code and make it less maintainable. Moving the traversal code to designated iterators can help you make the code of the application more lean and clean.
 
-- **Local execution of a remote service (remote proxy). This is when the service object is located on a remote server.**
-  - In this case, the proxy passes the client request over the network, handling all of the nasty details of working with the network.
-
--  **Logging requests (logging proxy). This is when you want to keep a history of requests to the service object.**
-  - The proxy can log each request before passing it to the service.
-
-- **Caching request results (caching proxy). This is when you need to cache results of client requests and manage the life cycle of this cache, especially if results are quite large.**
-  - The proxy can implement caching for recurring requests that always yield the same results. The proxy may use the parameters of requests as the cache keys.
-
-- **Smart reference. This is when you need to be able to dismiss a heavyweight object once there are no clients that use it.**
-  - The proxy can keep track of clients that obtained a reference to the service object or its results. From time to time, the proxy may go over the clients and check whether they are still active. If the client list gets empty, the proxy might dismiss the service object and free the underlying system resources.
-  - The proxy can also track whether the client had modified the service object. Then the unchanged objects may be reused by other clients.
+- **Use the Iterator when you want your code to be able to traverse different data structures or when types of these structures are unknown beforehand.**
+  - The pattern provides a couple of generic interfaces for both collections and iterators. Given that your code now uses these interfaces, it’ll still work if you pass it various kinds of collections and iterators that implement these interfaces.
 
 ## How to implement :hammer:
 
-1. If there’s no pre-existing service interface, create one to make proxy and service objects interchangeable. Extracting the interface from the service class isn’t always possible, because you’d need to change all of the service’s clients to use that interface. Plan B is to make the proxy a subclass of the service class, and this way it’ll inherit the interface of the service.
-2. Create the proxy class. It should have a field for storing a reference to the service. Usually, proxies create and manage the whole life cycle of their services. On rare occasions, a service is passed to the proxy via a constructor by the client.
-3. Implement the proxy methods according to their purposes. In most cases, after doing some work, the proxy should delegate the work to the service object.
-4. Consider introducing a creation method that decides whether the client gets a proxy or a real service. This can be a simple static method in the proxy class or a full-blown factory method.
-5. Consider implementing lazy initialization for the service object.
+1. Declare the iterator interface. At the very least, it must have a method for fetching the next element from a collection. But for the sake of convenience you can add a couple of other methods, such as fetching the previous element, tracking the current position, and checking the end of the iteration.
+2. Declare the collection interface and describe a method for fetching iterators. The return type should be equal to that of the iterator interface. You may declare similar methods if you plan to have several distinct groups of iterators.
+3. Implement concrete iterator classes for the collections that you want to be traversable with iterators. An iterator object must be linked with a single collection instance. Usually, this link is established via the iterator’s constructor.
+4. Implement the collection interface in your collection classes. The main idea is to provide the client with a shortcut for creating iterators, tailored for a particular collection class. The collection object must pass itself to the iterator’s constructor to establish a link between them.
+5. Go over the client code to replace all of the collection traversal code with the use of iterators. The client fetches a new iterator object each time it needs to iterate over the collection elements.
 
 ## Pros and Cons :balance_scale:
 
 **Pros**
 
--  You can control the service object without clients knowing about it.
--  You can manage the lifecycle of the service object when clients don’t care about it.
--  The proxy works even if the service object isn’t ready or is not available.
--  *Open/Closed Principle*. You can introduce new proxies without changing the service or clients.
+- *Single Responsibility Principle*. You can clean up the client code and the collections by extracting bulky traversal algorithms into separate classes.
+-  *Open/Closed Principle*. You can implement new types of collections and iterators and pass them to existing code without breaking anything.
+-  You can iterate over the same collection in parallel because each iterator object contains its own iteration state.
+-  For the same reason, you can delay an iteration and continue it when needed.
 
 **Cons**
 
--  The code may become more complicated since you need to introduce a lot of new classes.
--  The response from the service might get delayed.
+-  Applying the pattern can be an overkill if your app only works with simple collections.
+-  Using an iterator may be less efficient than going through elements of some specialized collections directly.
 
 ## Relations with Other Patterns :family:
 
-- **Adapter** provides a different interface to the wrapped object, **Proxy** provides it with the same interface, and **Decorator** provides it with an enhanced interface.
-- **Facade** is similar to **Proxy** in that both buffer a complex entity and initialize it on its own. Unlike *Facade*, *Proxy* has the same interface as its service object, which makes them interchangeable.
-- **Decorator** and **Proxy** have similar structures, but very different intents. Both patterns are built on the composition principle, where one object is supposed to delegate some of the work to another. The difference is that a *Proxy* usually manages the life cycle of its service object on its own, whereas the composition of *Decorators* is always controlled by the client.
+- You can use **Iterators**] to traverse **Composite**] trees.
+- You can use **Factory Method** along with **Iterator**] to let collection subclasses return different types of iterators that are compatible with the collections.
+- You can use **Memento**] along with **Iterator** to capture the current iteration state and roll it back if necessary.
+- You can use **Visitor**] along with **Iterator**] to traverse a complex data structure and execute some operation over its elements, even if they all have different classes.

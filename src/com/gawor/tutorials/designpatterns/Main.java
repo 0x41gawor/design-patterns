@@ -7,38 +7,34 @@ refer to image in `doc.md/Structure`
  */
 
 /*
-    In this example we will present "Cashing Proxy" (see `doc.md/Applicability`).
+    Facebook keeps your friend in a collection called graph.
+    Let's assume you've met Andrew in work and you added yourselves as friends of facebook.
+    Now Facebook would like to propose some new friends for you based on this event. What Facebook will do?
+    Iterate through Andrew friend list and create list based on the chance of you knowing them in real life.
+    You met Andrew in work, so his coworkers will be the first ones on this list. And this is the clue!
 
-    We will introduce lazy initialization and caching to a 3rd-party YouTube integration library.
+    But it is also possible that Andrew's brother visited him in work and you met him also and we should take it into account.
+    So Facebook creates list of Andrew in some order and shows you first `n` positions.
 
-    <h2> But, what is caching? </h2>
+    But what if you met Andrew not in workplace, but on some party when he was with his friends?
+    Facebook should iterate through Andrew's friends in different order.
 
-    The library provides us with the video downloading class. However, it’s very inefficient.
-    If the client application requests the same video multiple times, the library just downloads it over and over,
-    instead of caching and reusing the first downloaded file.
+    Facebook does not sort graph, it just iterates it in different manner.
 
-    The proxy class implements the same interface as the original downloader and delegates it all the work.
-    However, it keeps track of the downloaded files and returns the cached result when the app requests the same video multiple times.
+    ***
+    In this example we are build very bad code, to simplify the situation.
+    We have Andrew profile. With hardcoded friend list sorted by how close Andrew is with them.
  */
-
-
-import com.gawor.tutorials.designpatterns.youtubelib.IThirdPartyYouTubeLib;
-import com.gawor.tutorials.designpatterns.youtubelib.ThirdPartyYouTubeClass;
-import com.gawor.tutorials.designpatterns.youtubelib.YouTubeCacheProxy;
 
 //---// C L I E N T   C O D E
 public class Main {
 
     public static void main(String[] args) {
 
-        IThirdPartyYouTubeLib youTubeLib = new YouTubeCacheProxy(new ThirdPartyYouTubeClass());
-        System.out.println("--------    List all videos     ---------");
-        youTubeLib.listVideos();
-        System.out.println("\n--------   Download video 2     ---------");
-        System.out.println(youTubeLib.downloadVideo(2));
-        System.out.println("\n--------   Download video 5     ---------");
-        System.out.println(youTubeLib.downloadVideo(5));
-        System.out.println("\n-------- Download video 2 again ---------");
-        System.out.println(youTubeLib.downloadVideo(2));
+        Profile Andrew = new Profile("Andrew");
+        // You can see the same list, but iterated in different way
+        Andrew.proposeForCoworker();
+        Andrew.proposeForFamily();
+        Andrew.proposeForBuddy();
     }
 }
